@@ -1,0 +1,74 @@
+[
+    {
+        "state": "crosstraffic", 
+        "time": 0
+    }, 
+    {
+        "state": "crossstopping", 
+        "time": 33.60501133786848
+    }, 
+    {
+        "state": "sidesurging", 
+        "time": 39.65963718820862
+    }, 
+    {
+        "state": "sidetraffic", 
+        "time": 55.97850340136054
+    }, 
+    {
+        "state": "sidestopping", 
+        "time": 96.08616780045351
+    }, 
+    {
+        "state": "crosssurging", 
+        "time": 97.5371201814059
+    }, 
+    {
+        "state": "crosstraffic", 
+        "time": 114.41126984126984
+    }, 
+    {
+        "state": "crossstopping", 
+        "time": 154.62621315192743
+    }, 
+    {
+        "state": "sidesurging", 
+        "time": 159.83893424036282
+    }, 
+    {
+        "state": "sidetraffic", 
+        "time": 177.62666666666667
+    }, 
+    {
+        "state": "sidestopping", 
+        "time": 211.07083900226758
+    }, 
+    {
+        "state": "crosssurging", 
+        "time": 217.1254648526077
+    }, 
+    {
+        "state": "crosstraffic", 
+        "time": 233.69510204081632
+    }, 
+    {
+        "state": "crossstopping", 
+        "time": 267.37195011337866
+    }, 
+    {
+        "state": "sidesurging", 
+        "time": 270.4171882086168
+    }, 
+    {
+        "state": "sidetraffic", 
+        "time": 285.338820861678
+    }, 
+    {
+        "state": "sidestopping", 
+        "time": 323.0638548752834
+    }, 
+    {
+        "state": "crosssurging", 
+        "time": 327.3271882086168
+    }
+]

@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Carolina Crossing Challenge</title>
+        <title>CCC mini game</title>
         <style type="text/css">
             @import "http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/resources/dojo.css";
             @import "http://ajax.googleapis.com/ajax/libs/dojo/1.5/dijit/themes/claro/claro.css";
@@ -27,23 +27,30 @@
         <script type="text/javascript" src="/libs/uow.js"></script>
         <script type="text/javascript" src="raphael.js"></script>
         <script type="text/javascript" src="miniGame_raphael.js"></script>
-        <script type="text/javascript" src="maps/maps2.js"></script>
-        <script type="text/javascript" src="SC_raphael.js"></script>
-        <script type="text/javascript" src="CarolinaCrossingChallenge.js"></script>
+        <script type="text/javascript">
+            // kick off the game by creating the object
+            function main() {
+                var h1 = Raphael("holder", 500, 500);
+                var m = new miniGame(h1, 'L');
+            }
+            // don't start until everything is loaded
+            dojo.ready(main);            
+        </script>
+
 
     </head>
     <body>
             <form>
-            Facing Street:
+            X Pos:
         <input type="text" id="form1" />
         <form>
-            Closest Building:
+            Y Pos:
         <input type="text" id="form2" />
         <form>
-            Objective Building:
+            Number on BG grid:
         <input type="text" id="form3" />
         <form>
-            Tile of Objective Building:
+            Current Tile:
         <input type="text" id="form4" />
         <div id="holder"> 
 

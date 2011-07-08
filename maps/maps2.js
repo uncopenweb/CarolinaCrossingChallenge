@@ -1,6 +1,10 @@
 
 // the tiles are alignined in a grid for easier manipulation in the CCC game
 
+// these are the different possible types of tiles
+// 0 = four-way; 1 = T-shape pointing North; 2,3,4 = East, South, West; 5 = vertical street; 6 = horiz street
+tile_types = ['fourway', 'northt', 'eastt', 'southt', 'westt', 'vert', 'horiz'];
+
 
 MAPS = {
     chapel_hill: {
@@ -12,6 +16,7 @@ MAPS = {
         0: {
             // row 0, col 0
             0 : {
+                type: 'fourway',
                 name: 'Tile 10',
                 
                 // the names of the roads
@@ -43,6 +48,7 @@ MAPS = {
             },
             // row 0, col 1
             1 : {
+                type: 'fourway',
                 name: 'Tile 2',
                 
                 // the names of the roads
@@ -79,6 +85,7 @@ MAPS = {
         1: {
             // row 1, col 0
             0: {
+                type: 'northt',
                 name: 'Tile 5',
 
                 // the names of the roads
@@ -110,6 +117,7 @@ MAPS = {
             },
             // row 1, col 1
             1: {
+                type: 'fourway',
                 name: 'Tile 1',
                 
                 // the names of the roads
@@ -141,6 +149,7 @@ MAPS = {
             },
             // row 1, col 2
             2: {
+                type: 'northt',
                 name: 'Tile 3',
 
                 // the names of the roads
@@ -175,6 +184,7 @@ MAPS = {
         2: {
             // row 2, col 0
             0: {
+                type: 'southt',
                 name: 'Tile 8',
                 
                 // the names of the roads
@@ -206,6 +216,7 @@ MAPS = {
             },
             // row 2, col 1
             1: {
+                type: 'fourway',
                 name: 'Tile 4',
 
                 // the names of the roads
@@ -237,6 +248,7 @@ MAPS = {
             },
             // row 2, col 2
             2: {
+                type: 'horiz',
                 name: 'Tile 7',
                 
                 // the names of the roads

@@ -1,4 +1,8 @@
 
+// these are the different possible types of tiles
+// 0 = four-way; 1 = T-shape pointing North; 2,3,4 = East, South, West; 5 = vertical street; 6 = horiz street
+tile_types = ['fourway', 'northt', 'eastt', 'southt', 'westt', 'vert', 'horiz'];
+
 audioFiles = {
     1: {
         name: 'test1',
@@ -16,11 +20,12 @@ dojo.declare('seeker', [ ], {
     height: 500,
     x_map: [0,1,0,-1],
     y_map: [-1,0,1,0],
+    dir_map: ['north', 'east', 'south', 'west'],
     
 
     
         // the constructor gets called when we create the object
-    constructor: function(primHolder, auxHolder) {
+    constructor: function(primHolder, auxHolder, map, obj, objx, objy) {
        
        // initilize the Raphael canvases
         this.auxHolder = auxHolder;
@@ -28,25 +33,36 @@ dojo.declare('seeker', [ ], {
 
         //initalize the player
         this.player = {
-            x_pos: this.width * 0.66,
-            y_pos: this.height - 10,
-            direction: 0, // 0 = north, 1 = east, 2 = south, 3 = west
+            x_pos: this.width * 0.34,
+            y_pos: 10,
+            direction: 2, // 0 = north, 1 = east, 2 = south, 3 = west
             speed: 10,
             onCorner: false,
         }
         
         // initalize the current tile
-        this.currentMap = MAPS.chapel_hill;
-        this.tilePos = [1,1];
+        if (!map){
+            map = MAPS.chapel_hill;
+            obj = "Spanky's";
+            objx = 1;
+            objy = 1;
+        }      
+        this.currentMap = map;
+        this.tilePos = [0,0];
         this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
+        
+            
+        // initialize objective building to reach
+        this.objective = {};
+        this.objective.name = obj;
+        this.objective.x = objy;
+        this.objective.y = objx;
         
         // this is used solely as an object for the GPS map
         this.GPSMapPlayer = null;
 
         // initializes the game to not being paused
         this.isPaused = false;
-        
-        this.link = dojo.connect(window, 'keydown', this, 'keyDown');
 
         // initialize audio
         uow.getAudio({ defaultCaching: true }).then(dojo.hitch(this, function(a) {
@@ -56,6 +72,14 @@ dojo.declare('seeker', [ ], {
     },
     
     newGame: function() {
+        var self = this;
+    
+        // the player cannot move until the directions are finished
+        this.audio.say({text: "You are now on the street.  Your goal is to get to " + this.objective.name + ". " +
+            "For GPS information, press down on the arrow pad.  Good Luck!"}).callAfter( function() {
+                self.link = dojo.connect(window, 'keydown', self, 'keyDown');
+            });
+    
         this.createBG();
         this.createPlayer();
         this.createGPSMap();
@@ -150,41 +174,53 @@ dojo.declare('seeker', [ ], {
     
     createGPSMap: function(){
         var hold = this.auxHolder;
-        // height and width of each of the little boxes
-        var sz = Math.min(300/(this.currentMap.height*10),300/(this.currentMap.width*10));
+        // height and width of each of the tiles in the minimap
+        var sz = Math.min(300/(this.currentMap.height),300/(this.currentMap.width));
         
         var cell_type; // this 
-        hold.text(200, 30, "GPS Map");
+        this.auxHolder.image("images/gps.gif", 0, 0, 500, 500);
         
         // draw all the tiles
         for (var x = 0 ; x < this.currentMap.height; x++){
             for (var y = 0 ; y < this.currentMap.width ; y++){
-                if(this.currentMap[y][x]){
-                    // draw the individual tiles
-                    for (i = 0 ; i < 10 ; i++){
-                        for (j = 0 ; j < 10 ; j++){
-                            cell_type = this.currentMap[y][x].BG_grid[j][i];
-                            if (cell_type == 0) {
-                                hold.rect(i*sz+100*x+50,j*sz+100*y+50,sz,sz).attr({fill: "#ccc", stroke: "#ccc",});
-                            }
-                            else if (cell_type == 1) {
-                                hold.rect(i*sz+100*x+50,j*sz+100*y+50,sz,sz).attr({fill: "#fff", stroke: "#fff",});
-                            }
-                            else if (cell_type == 2) {
-                                hold.rect(i*sz+100*x+50,j*sz+100*y+50,sz,sz).attr({fill: "#aaa", stroke: "#aaa",});
-                            }
-                            else if (cell_type > 2) {
-                                hold.rect(i*sz+100*x+50,j*sz+100*y+50,sz,sz).attr({fill: "#953", stroke: "#953",});
-                            }
-                        }       
+                if (this.currentMap[y] && this.currentMap[y][x]){
+                    // display the tile picture
+                   hold.image("images/background/"+this.currentMap[y][x].type+".gif", x*sz+100, y*sz+100, sz, sz);
+                   
+                    // draw the objective building in yellow
+                    if (y == this.objective.x && x == this.objective.y){
+                        var cbuild = this.currentMap[y][x].buildName;
+                        if (cbuild.nw == this.objective.name){
+                            hold.rect(x*sz+100, y*sz+100, sz*0.3, sz*0.3).attr({
+                                fill: "#ff0", 
+                                stroke: "#ff0",
+                            });
+                        } else if (cbuild.ne == this.objective.name){
+                            hold.rect(x*sz+100+sz*0.7, y*sz+100, sz*0.3, sz*0.3).attr({
+                                fill: "#ff0", 
+                                stroke: "#ff0",
+                            });
+                        } else if (cbuild.sw == this.objective.name){
+                            hold.rect(x*sz+100, y*sz+100+sz*0.7, sz*0.3, sz*0.3).attr({
+                                fill: "#ff0", 
+                                stroke: "#ff0",
+                            });
+                        } else if (cbuild.se == this.objective.name){
+                            hold.rect(x*sz+100+sz*0.7, y*sz+100+sz*0.7, sz*0.3, sz*0.3).attr({
+                                fill: "#ff0", 
+                                stroke: "#ff0",
+                            });
+                        }
                     }
                 } else {
-                    hold.rect(x*100 + 50, y*100 + 50, 100, 100).attr({fill: "#777", stroke: "#777",});
+                    hold.rect(x*sz + 100, y*sz + 100, sz, sz).attr({fill: "#000", stroke: "#000",});
                 }
+                
+
             }
         }
         this.updateGPSMapPlayer();
-        hold.text(200, 400, "Controls\n\nUP: Move your player forward\n\nLEFT/RIGHT: Turn your player left/right" + 
+        hold.text(250, 430, "Controls\n\nUP: Move your player forward\n\nLEFT/RIGHT: Turn your player left/right" + 
             "\n\nDOWN: Use GPS to get player direction and position on the map");
     },
     
@@ -194,10 +230,13 @@ dojo.declare('seeker', [ ], {
         if (this.GPSMapPlayer){
             this.GPSMapPlayer.remove();
         }
+        
+        var sz = Math.min(300/(this.currentMap.height),300/(this.currentMap.width));
+        
         var localx = parseInt(this.player.x_pos/50); // the positions of the player in the current tile
         var localy = parseInt(this.player.y_pos/50);
-        this.GPSMapPlayer = this.auxHolder.rect(localx*10 + this.tilePos[1]*100 + 50, 
-            localy*10 + this.tilePos[0]*100 + 50, 10, 10);
+        this.GPSMapPlayer = this.auxHolder.rect(localx*sz/10 + this.tilePos[1]*sz + 100, 
+            localy*sz/10 + this.tilePos[0]*sz + 100, sz/10, sz/10);
         this.GPSMapPlayer.attr({fill: "#00f", stroke: "#fff",});
     },
     
@@ -234,66 +273,55 @@ dojo.declare('seeker', [ ], {
         if (e.keyCode == dojo.keys.UP_ARROW) {
             
             // calculate the next position of the player
-            var next_x = this.player.x_pos + this.x_map[this.player.direction]*this.player.speed;
-            var next_y = this.player.y_pos + this.y_map[this.player.direction]*this.player.speed;
+            var next_x = this.player.x_pos + this.x_map[this.player.direction]*this.player.speed*1.5;
+            var next_y = this.player.y_pos + this.y_map[this.player.direction]*this.player.speed*1.5;
             
             // check if the player walks off the map
             // If there is another tile available, the new tile is loaded.
             // Otherwise the player is alerted that they cannot continue
-            if (next_x > this.height-10 || next_x < 10 || next_y > this.width-10 || next_y < 10){
+            if (next_x > this.height || next_x < 0 || next_y > this.width || next_y < 0){
                 this.audio.stop();
-                // load the tile to the north
-                if (next_y < this.height*0.1 &&    
-                    this.currentMap[this.tilePos[0] - 1][this.tilePos[1]]){ // check if the adj tile exists
-                    this.tilePos[0]--;
-                    this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
-                    this.player.y_pos = this.player.y_pos + this.height - 20;
-                    this.audio.say({text: "You walked one block north."});
+                
+                var x_scalar = this.x_map[this.player.direction];
+                var y_scalar = this.y_map[this.player.direction];
+                var next_tile_x = this.tilePos[0] + y_scalar; 
+                var next_tile_y = this.tilePos[1] + x_scalar;
+                
+                // check if the adj tile exists
+                if (this.currentMap[next_tile_x] && this.currentMap[next_tile_x][next_tile_y]){ 
+                
+                    // load the next tile and move the player
+                    this.tilePos[0] = next_tile_x;
+                    this.tilePos[1] = next_tile_y;
+                    this.currentTile = this.currentMap[next_tile_x][next_tile_y];
+                    this.player.x_pos += (20 - this.width) * x_scalar;
+                    this.player.y_pos += (20 - this.height) * y_scalar;
+                    this.audio.say({text: "You walked one block " + this.dir_map[this.player.direction]});
+                    
+                    // "build" the next tile onto the screen
+                    this.raph.clear();
+                    this.createBG();
+                    this.createPlayer();
                 }  
-                // load the tile to the east
-                else if (next_x > this.width*0.9 &&    
-                    this.currentMap[this.tilePos[0]][this.tilePos[1] + 1]){ // check if the adj tile exists
-                    this.tilePos[1]++;
-                    this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
-                    this.player.x_pos = this.player.x_pos - this.height + 20;
-                    this.audio.say({text: "You walked one block east."});
-                }
-                // load the tile to the south
-                else if (next_y > this.height*0.9 &&    
-                    this.currentMap[this.tilePos[0] + 1][this.tilePos[1]]){ // check if the adj tile exists
-                    this.tilePos[0]++;
-                    this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
-                    this.player.y_pos = this.player.y_pos - this.height + 20;
-                    this.audio.say({text: "You walked one block south."});
-                }
-                // load the tile to the est
-                else if (next_x < this.width*0.1 &&     
-                    this.currentMap[this.tilePos[0]][this.tilePos[1] - 1]){ // check if the adj tile exists
-                    this.tilePos[1]--;
-                    this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
-                    this.player.x_pos = this.player.x_pos + this.height - 20;
-                    this.audio.say({text: "You walked one block west."});
-                }
                 // The adjecent tile does not exist
                 else {
                     this.audio.say({text: "That is out of bounds."});
                 }
-                this.raph.clear();
-                this.createBG();
-                this.createPlayer();
                 return;
             }
 
+            // calculate the type of grid cell the next step is on (avoids repeated calls)
+            var cell_type = this.currentTile.BG_grid[parseInt(next_y/50)][parseInt(next_x/50)];
+            
             // check if the player walks into a building
-            if (this.currentTile.BG_grid[parseInt(next_y/50)][parseInt(next_x/50)] > 2 ||
-              this.currentTile.BG_grid[parseInt((next_y-10)/50)][parseInt((next_x-10)/50)] > 2){
+            if (cell_type > 2){
                 this.audio.stop();
                 this.audio.say({text: "you are running into a building"});
                 return;
             }
             
             // check if the player walks onto the street corner
-            if (this.currentTile.BG_grid[parseInt(next_y/50)][parseInt(next_x/50)] == 2){
+            if (cell_type == 2){
                 if (!this.player.onCorner){
                     this.audio.stop();
                    // this.audio.stop({channel: "bgnoise"});
@@ -307,7 +335,7 @@ dojo.declare('seeker', [ ], {
             }
             
             // check if the player walks off the street corner
-            if (this.currentTile.BG_grid[parseInt(next_y/50)][parseInt(next_x/50)] == 0 && this.player.onCorner){
+            if (this.player.onCorner && cell_type == 0){
                 this.audio.stop();
                 this.audio.say({text: "You have walked off the street corner."})
                 //this.audio.play({url: "sounds/corner", channel: "bgnoise"});
@@ -316,7 +344,7 @@ dojo.declare('seeker', [ ], {
             
                         
             // check if the player walks into the street
-            if (this.currentTile.BG_grid[parseInt(next_y/50)][parseInt(next_x/50)] == 1){
+            if (cell_type == 1){
                 this.audio.stop();
                 
                 // Play the Mini Game
@@ -324,16 +352,27 @@ dojo.declare('seeker', [ ], {
                     this.playGame();
                     return;
                 } else {                    
-                    this.audio.say({text: "You ran into the street"});
+                    this.audio.say({text: "You are running into the street"});
                     return;
                 }
             }
         
+        
             // if all the criteria pass, update the position of the player
-            this.player.body.translate(next_x - this.player.x_pos, next_y - this.player.y_pos);
-            this.player.face.translate(next_x - this.player.x_pos, next_y - this.player.y_pos);
-            this.player.x_pos = next_x;
-            this.player.y_pos = next_y;
+            
+            // calculate the displacement of the x and y coord
+            var x_move = this.x_map[this.player.direction]*this.player.speed;
+            var y_move = this.y_map[this.player.direction]*this.player.speed;
+            
+            // move the player on the screeb
+            this.player.body.translate(x_move, y_move);
+            this.player.face.translate(x_move, y_move);
+            
+            // update the position of the player object
+            this.player.x_pos += x_move;
+            this.player.y_pos += y_move;
+            
+            
             this.updateGPSMapPlayer();
         }
         
@@ -370,21 +409,67 @@ dojo.declare('seeker', [ ], {
         // the GPS button; states the direction of the player, the nearby roads and the building near the player
         if (e.keyCode == dojo.keys.DOWN_ARROW) {
             this.audio.stop();
+            
+             // says the where the player is in relation to the objective building
+            if (this.tilePos[0] == this.objective.x && this.tilePos[1] == this.objective.y){
+                // the player found the building, so the game ends! 
+                // We play celebration music and go back to the home screen
+                if (this.objective.name == this.findNearestBuilding()){
+                    return this.winGame();
+                    
+                } else {
+                    if (this.currentTile.buildName.ne == this.objective.name){
+                        this.audio.say({text: this.objective.name + 
+                            " is on the north east corner of this intersection"});
+                    } else if (this.currentTile.buildName.nw == this.objective.name){
+                        this.audio.say({text: this.objective.name + 
+                            " is on the north west corner of this intersection"});
+                    } else if (this.currentTile.buildName.se == this.objective.name){
+                        this.audio.say({text: this.objective.name + 
+                            " is on the south east corner of this intersection"});
+                    } else if (this.currentTile.buildName.sw == this.objective.name){
+                        this.audio.say({text: this.objective.name + 
+                            " is on the south west corner of this intersection"});
+                    }
+                    
+                }
+            } else {
+                this.audio.say({text: this.objective.name + " is"});
+                var dist, dir, unit;
+                dist = this.objective.x - this.tilePos[1] 
+                if (dist != 0){;
+                    var dir = 'east';
+                    if (dist < 0){
+                        dist = -dist;
+                        dir = 'west';
+                    }
+                    var unit = ' blocks ';
+                    if (dist == 1){
+                        unit = ' block ';
+                    }
+                    this.audio.say({text: dist + unit + dir + " and "});
+                }
+                dist = this.objective.y - this.tilePos[0]
+                if (dist != 0){;
+                    var dir = 'south';
+                    if (dist < 0){
+                        dist = -dist;
+                        dir = 'north';
+                    }
+                    var unit = ' blocks ';
+                    if (dist == 1){
+                        unit = ' block ';
+                    }
+                    this.audio.say({text: dist + unit + dir});
+                }
+            }
+            
             var dir; //direction the player is facing
             var doh, dov;  // direction of vertical and direction of horizontal
             var building;
             
             // say which direction the player faces
-            if (this.player.direction == 0){
-                dir = 'north';
-            } else if (this.player.direction == 1){
-                dir = 'east';
-            } else if (this.player.direction == 2){
-                dir = 'south';
-            } else if (this.player.direction == 3){
-                dir = 'west';
-            }
-            this.audio.say({text: "You are facing " + dir});
+            this.audio.say({text: "You are facing " + this.dir_map[this.player.direction]});
             
             // say where the streets are at
             var road;
@@ -406,11 +491,13 @@ dojo.declare('seeker', [ ], {
             this.player.direction = (this.player.direction+1)%4;
             
                     
-            // state the nearest building
+            // says the nearest building
             var building;
             if (building = this.findNearestBuilding()) {
                 this.audio.say({ text: "You are standing next to" + building});
             }
+            
+           
         }
 
         
@@ -422,8 +509,10 @@ dojo.declare('seeker', [ ], {
     // this is used primarily for the GPS in KeyDown()
     facingRoad: function(){        
         var coord = this.findPlayerGridCoord();
-        while (this.currentTile.BG_grid[coord[1]] && 
-          typeof this.currentTile.BG_grid[coord[1]][coord[0]] == "number"){
+        var x_scalar = this.x_map[this.player.direction];
+        var y_scalar = this.y_map[this.player.direction];
+        
+        while (coord[0] < 10 && coord[0] >= 0 && coord[1] < 10 && coord[1] >= 0){
             if (this.currentTile.BG_grid[coord[1]][coord[0]] == 1){
                 if (this.player.direction%2 == 0){
                     return this.currentTile.roadName.horiz;
@@ -431,8 +520,8 @@ dojo.declare('seeker', [ ], {
                     return this.currentTile.roadName.vert;
                 }
             }
-            coord[0] += this.x_map[this.player.direction];
-            coord[1] += this.y_map[this.player.direction];
+            coord[0] += x_scalar;
+            coord[1] += y_scalar;
         }
         return null;
     },
@@ -442,16 +531,15 @@ dojo.declare('seeker', [ ], {
     findNearestBuilding: function(){
         var coord = this.findPlayerGridCoord();
         var num = null;
-        if ((num = this.currentTile.BG_grid[coord[0]][coord[1]+1]) > 2){}         // north spot
-        else if ((num = this.currentTile.BG_grid[coord[0]][coord[1]-1]) > 2){}    // south spot
-        else if ((num = this.currentTile.BG_grid[coord[0]+1][coord[1]]) > 2){}    // east spot
-        else if ((num = this.currentTile.BG_grid[coord[0]-1][coord[1]]) > 2){}    // west spot
-        else if ((num = this.currentTile.BG_grid[coord[0]+1][coord[1]+1]) > 2){}  // 
-        else if ((num = this.currentTile.BG_grid[coord[0]+1][coord[1]-1]) > 2){} 
-        else if ((num = this.currentTile.BG_grid[coord[0]-1][coord[1]+1]) > 2){} 
-        else if ((num = this.currentTile.BG_grid[coord[0]-1][coord[1]-1]) > 2){} 
+        if ((num = this.currentTile.BG_grid[coord[0]][coord[1]+1]) > 2 && num < 7){}         // north spot
+        else if ((num = this.currentTile.BG_grid[coord[0]][coord[1]-1]) > 2 && num < 7){}    // south spot
+        else if ((num = this.currentTile.BG_grid[coord[0]+1][coord[1]]) > 2 && num < 7){}    // east spot
+        else if ((num = this.currentTile.BG_grid[coord[0]-1][coord[1]]) > 2 && num < 7){}    // west spot
+        else if ((num = this.currentTile.BG_grid[coord[0]+1][coord[1]+1]) > 2 && num < 7){}  // 
+        else if ((num = this.currentTile.BG_grid[coord[0]+1][coord[1]-1]) > 2 && num < 7){} 
+        else if ((num = this.currentTile.BG_grid[coord[0]-1][coord[1]+1]) > 2 && num < 7){} 
+        else if ((num = this.currentTile.BG_grid[coord[0]-1][coord[1]-1]) > 2 && num < 7){} 
         else {return null;}
-        
         // decide which building it is
         if (num == 3) {return this.currentTile.buildName.nw};
         if (num == 4) {return this.currentTile.buildName.sw};
@@ -465,6 +553,20 @@ dojo.declare('seeker', [ ], {
         var y = parseInt(this.player.y_pos/50);
         return [x,y];
     },
+    
+    // This ends a winning game and starts another instance of the main menu
+    winGame: function(){
+        var self = this;
+    
+        dojo.disconnect(this.link);
+        this.audio.stop();
+        this.audio.play({url: "sounds/winner"});
+        this.audio.say({text: "Congratulations.  You reached " + this.findNearestBuilding()}).callAfter( function(){
+           self.raph.clear();
+           self.auxHolder.clear();
+           var c = new CCC(self.raph, self.auxHolder);
+        });
+    },
               
     playGame: function(){
     
@@ -476,8 +578,26 @@ dojo.declare('seeker', [ ], {
         this.GPSMapPlayer.remove();
         this.auxHolder.clear();
         
+        
+        // the road is initially on neither side of the player
+        var roadSide = 'N'
+        
+        // check if the road is to the right of the player
+        this.player.direction = (this.player.direction+1)%4;
+        if (this.facingRoad()){
+            roadSide = 'R';
+        }
+        this.player.direction = (this.player.direction+3)%4;
+
+        // check if the road is to the left of the player
+        this.player.direction = (this.player.direction+3)%4;
+        if (this.facingRoad()){
+            roadSide = 'L';
+        }
+        this.player.direction = (this.player.direction+1)%4;
+
         // play the mini game and "wait" until it is over
-        var m = new miniGame(this.auxHolder);
+        var m = new miniGame(this.auxHolder, roadSide);
         this.waitUntilFinished(m);
     },
     
@@ -497,6 +617,7 @@ dojo.declare('seeker', [ ], {
                     this.y_map[this.player.direction]*0.24*this.width);
                 this.player.x_pos += this.x_map[this.player.direction]*0.24*this.width;
                 this.player.y_pos += this.y_map[this.player.direction]*0.24*this.width;
+                this.updateGPSMapPlayer();
             }
         }
         else {
@@ -509,16 +630,4 @@ dojo.declare('seeker', [ ], {
     },
 
 });
-
-
-
-// kick off the game by creating the object
-function main() {
-    var h1 = Raphael("holder", 500, 500);
-    var h2 = Raphael("holder", 500, 500);
-    var s = new seeker(h2, h1);
-}
-
-// don't start until everything is loaded
-dojo.ready(main);
 
