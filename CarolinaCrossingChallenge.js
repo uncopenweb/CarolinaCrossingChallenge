@@ -13,6 +13,8 @@ dojo.declare('CCC', [ ], {
 
     width: 500,         // dimensions of the canvas
     height: 500,
+   
+        
     
         // the constructor gets called when we create the object
     constructor: function(primHolder, auxHolder) {
@@ -111,7 +113,7 @@ dojo.declare('CCC', [ ], {
         this.audio.say({text: "Welcome to Carolina Crossing Challenge. "}).callAfter( function(){     
             self.link = dojo.connect(window, 'keydown', self, 'keyDown');
         });
-        this.audio.say({text: "Press up and down to move through the menu and press right to select an option."});
+        this.audio.say({text: "Press right to move through the menu and press up to select an option."});
         this.displayMenu();
     },
     
@@ -135,16 +137,16 @@ dojo.declare('CCC', [ ], {
 
         this.audio.stop();
 
-        if (e.keyCode == dojo.keys.UP_ARROW) {
-            this.currentTab = (this.currentTab + this.currentMenu.size-1)%this.currentMenu.size;
-            this.displayMenu();
+        if (e.keyCode == dojo.keys.LEFT_ARROW) {
+            //this.currentTab = (this.currentTab + this.currentMenu.size-1)%this.currentMenu.size;
+            //this.displayMenu();
         }
 
-        if (e.keyCode == dojo.keys.RIGHT_ARROW) {
+        if (e.keyCode == dojo.keys.UP_ARROW) {
             this.currentMenu[this.currentTab].action();
         }
         
-        if (e.keyCode == dojo.keys.DOWN_ARROW) {
+        if (e.keyCode == dojo.keys.RIGHT_ARROW) {
             this.currentTab = (this.currentTab + 1)%this.currentMenu.size;
             this.displayMenu();
         }

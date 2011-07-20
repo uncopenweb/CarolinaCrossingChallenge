@@ -8,6 +8,7 @@ tile_types = ['fourway', 'northt', 'eastt', 'southt', 'westt', 'vert', 'horiz'];
 
 MAPS = {
     chapel_hill: {
+        name: "Chapel Hill",
         height: 3,
         width: 3,
         // starting tile
