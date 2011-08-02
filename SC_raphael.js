@@ -84,7 +84,8 @@ dojo.declare('seeker', [ ], {
         var lr = this.facingRoad();
         this.player.direction = (this.player.direction + 1)%4;
         
-        this.audio.say({text: "You are now standing on the street.  " +
+        this.audio.say({text: "You are now standing on a street corner. " + 
+            " You are next to " + this.findNearestBuilding() + ". " +
             lr + " is on your left and " + this.facingRoad() + " is in front of you. " +
             "In this game, your goal is to get to " + this.objective.name + ". " +
             "To walk forward, press up.  To turn left and right, press the left and right arrows. " + 
@@ -424,7 +425,12 @@ dojo.declare('seeker', [ ], {
             var building;
             
             // say which direction the player faces
-            this.audio.say({text: "You are facing " + this.dir_map[this.player.direction]});
+            if (this.player.onCorner == true) {
+                this.audio.say({text: "You are on a street corner facing " 
+                   + this.dir_map[this.player.direction]});
+            } else {
+                this.audio.say({text: "You are facing " + this.dir_map[this.player.direction]});
+            }
             
             // say where the streets are at
             var road;
@@ -451,60 +457,60 @@ dojo.declare('seeker', [ ], {
             if (building = this.findNearestBuilding()) {
                 this.audio.say({ text: "You are standing next to" + building});
             }
-            
-             // says the where the player is in relation to the objective building
-            if (this.tilePos[0] == this.objective.x && this.tilePos[1] == this.objective.y){
-                // the player found the building, so the game ends! 
-                // We play celebration music and go back to the home screen
-                if (this.objective.name == this.findNearestBuilding()){
-                    return this.winGame();
-                    
-                } else {
-                    if (this.currentTile.buildName.ne == this.objective.name){
-                        this.audio.say({text: this.objective.name + 
-                            " is on the north east corner of this intersection"});
-                    } else if (this.currentTile.buildName.nw == this.objective.name){
-                        this.audio.say({text: this.objective.name + 
-                            " is on the north west corner of this intersection"});
-                    } else if (this.currentTile.buildName.se == this.objective.name){
-                        this.audio.say({text: this.objective.name + 
-                            " is on the south east corner of this intersection"});
-                    } else if (this.currentTile.buildName.sw == this.objective.name){
-                        this.audio.say({text: this.objective.name + 
-                            " is on the south west corner of this intersection"});
-                    }
-                    
-                }
-            } else {
-                this.audio.say({text: this.objective.name + " is"});
-                var dist, dir, unit;
-                dist = this.objective.x - this.tilePos[1] 
-                if (dist != 0){;
-                    dir = 'east';
-                    if (dist < 0){
-                        dist = -dist;
-                        dir = 'west';
-                    }
-                    unit = (dist == 1) ? ' block ': ' blocks ';
-                    this.audio.say({text: dist + unit + dir + " and "});
-                }
-                dist = this.objective.y - this.tilePos[0]
-                if (dist != 0){;
-                    dir = 'south';
-                    if (dist < 0){
-                        dist = -dist;
-                        dir = 'north';
-                    }
-                    unit = (dist == 1) ? ' block ': ' blocks ';
-                    this.audio.say({text: dist + unit + dir});
-                }
-            }
-           
         }
 
         
         dojo.byId('form2').value = this.findNearestBuilding();
         dojo.byId('form1').value = this.facingRoad();
+    
+            // Say where the destination building is
+    if (e.keyCode == dojo.keys.SPACE) {
+        if (this.tilePos[0] == this.objective.x && this.tilePos[1] == this.objective.y){
+            // the player found the building, so the game ends! 
+            // We play celebration music and go back to the home screen
+            if (this.objective.name == this.findNearestBuilding()){
+                return this.winGame();
+            } else {
+                if (this.currentTile.buildName.ne == this.objective.name){
+                    this.audio.say({text: this.objective.name + 
+                        " is on the north east corner of this intersection"});
+                } else if (this.currentTile.buildName.nw == this.objective.name){
+                    this.audio.say({text: this.objective.name + 
+                        " is on the north west corner of this intersection"});
+                } else if (this.currentTile.buildName.se == this.objective.name){
+                    this.audio.say({text: this.objective.name + 
+                        " is on the south east corner of this intersection"});
+                } else if (this.currentTile.buildName.sw == this.objective.name){
+                    this.audio.say({text: this.objective.name + 
+                        " is on the south west corner of this intersection"});
+                }
+                
+            }
+        } else {
+            var dist, dir, unit;
+            dist = this.objective.x - this.tilePos[1];
+            if (dist != 0){;
+                dir = 'east';
+                if (dist < 0){
+                    dist = -dist;
+                    dir = 'west';
+                }
+                unit = (dist == 1) ? ' block ': ' blocks ';
+                this.audio.say({text: this.objective.name + " is" + dist + unit + dir + " and "});
+            }
+            dist = this.objective.y - this.tilePos[0]
+            if (dist != 0){;
+                dir = 'south';
+                if (dist < 0){
+                    dist = -dist;
+                    dir = 'north';
+                }
+                unit = (dist == 1) ? ' block ': ' blocks ';
+                this.audio.say({text: dist + unit + dir});
+            }
+        }
+    }
+    
     },
     
     // returns true if the player is facing towards a road, and false otherwise
@@ -529,7 +535,6 @@ dojo.declare('seeker', [ ], {
     },
     
     // finds the building closest to the player.  if the closest building is not labled, it returns null
-    // THIS IS WRONG! IT NEEDS TO BE FIX!
     findNearestBuilding: function(){
         var coord = this.findPlayerGridCoord();
         var num = null;
