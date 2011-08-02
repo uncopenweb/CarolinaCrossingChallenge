@@ -42,13 +42,13 @@ dojo.declare('seeker', [ ], {
         
         // initalize the current tile
         if (!map){
-            map = MAPS.chapel_hill;
-            obj = "Spanky's";
-            objx = 1;
-            objy = 1;
+            map = MAPS.graham_nc;
+            obj = "Suntrust";
+            objx = 2;
+            objy = 2;
         }      
         this.currentMap = map;
-        this.tilePos = [0,0];
+        this.tilePos = [0, 2]; // the first number is the row, the second is the column
         this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
         
             
@@ -191,8 +191,8 @@ dojo.declare('seeker', [ ], {
         this.auxHolder.image("images/gps.gif", 0, 0, 500, 500);
         
         // draw all the tiles
-        for (var x = 0 ; x < this.currentMap.height; x++){
-            for (var y = 0 ; y < this.currentMap.width ; y++){
+        for (var x = 0 ; x < this.currentMap.width; x++){
+            for (var y = 0 ; y < this.currentMap.height ; y++){
                 if (this.currentMap[y] && this.currentMap[y][x]){
                     // display the tile picture
                    hold.image("images/background/"+this.currentMap[y][x].type+".gif", x*sz+100, y*sz+100, sz, sz);
