@@ -25,7 +25,11 @@ dojo.declare('seeker', [ ], {
 
     
         // the constructor gets called when we create the object
-    constructor: function(primHolder, auxHolder, map, obj, objx, objy) {
+        // primHolder is the left canvas and auxHolder is the right canvas
+        // map is the object of the map that is used in this game
+        // obj is the name of the objective building, objy is the row, and objx is the column
+        // startx is the row of the starting tile, and starty is the column
+    constructor: function(primHolder, auxHolder, map, obj, objx, objy, startx, starty) {
        
        // initilize the Raphael canvases
         this.auxHolder = auxHolder;
@@ -43,12 +47,17 @@ dojo.declare('seeker', [ ], {
         // initalize the current tile
         if (!map){
             map = MAPS.graham_nc;
-            obj = "Suntrust";
-            objx = 2;
-            objy = 2;
+            obj = "Graham Middle School";
+            objx = 0; // the column
+            objy = 3; // the row
         }      
         this.currentMap = map;
-        this.tilePos = [0, 2]; // the first number is the row, the second is the column
+        
+        if (startx && starty){
+            this.tilePos = [startx, starty]; 
+        } else {
+            this.tilePos = [0, 0]; // the first number is the row, the second is the column
+        }
         this.currentTile = this.currentMap[this.tilePos[0]][this.tilePos[1]];
         
             

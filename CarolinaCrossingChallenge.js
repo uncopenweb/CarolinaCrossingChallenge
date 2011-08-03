@@ -31,9 +31,9 @@ dojo.declare('CCC', [ ], {
                 text: "Play Game",
                 url: "playgame",
                 action: function(){
-                    self.raph.clear();
-                    dojo.disconnect(self.link);
-                    var s = new seeker(self.raph, self.auxHolder);
+                    self.currentMenu = self.chooseMap;
+                    self.currentTab = 0;
+                    self.displayMenu();
                 },
             },
             1: {
@@ -82,10 +82,43 @@ dojo.declare('CCC', [ ], {
                 text: "Tutorial",
                 url: "tutorial",
                 action: function(){
-                
+                    
                 },
             },
             1: {
+                text: "Main Menu",
+                url: "main",
+                action: function(){
+                    self.currentMenu = self.mainMenu;
+                    self.currentTab = 0;
+                    self.displayMenu();
+                },
+            },
+        };
+        
+        this.chooseMap = {
+            size: 3,
+            0: {
+                text: "Downtown Chapel Hill",
+                url: "chapelhill",
+                action: function(){
+                    self.raph.clear();
+                    dojo.disconnect(self.link);
+                    var s = new seeker(self.raph, self.auxHolder, MAPS.chapel_hill, 
+                        "The Carolina Inn", 1, 2);
+                },
+            },
+            1: {
+                text: "Graham",
+                url: "graham",
+                action: function(){
+                    self.raph.clear();
+                    dojo.disconnect(self.link);
+                    var s = new seeker(self.raph, self.auxHolder, MAPS.graham_nc, 
+                        "Graham Middle School", 0, 3, 4, 2);
+                },
+            },
+            2: {
                 text: "Main Menu",
                 url: "main",
                 action: function(){
