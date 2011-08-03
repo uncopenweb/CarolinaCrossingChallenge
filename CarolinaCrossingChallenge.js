@@ -66,12 +66,12 @@ dojo.declare('CCC', [ ], {
                 },
             },
             2: {
-                text: "Other Menu",
-                url: "other",
+                text: "Map Creator",
+                url: "creator",
                 action: function(){
-                    self.currentMenu = self.otherMenu;
-                    self.currentTab = 0;
-                    self.displayMenu();
+                    self.raph.clear();
+                    dojo.disconnect(self.link);
+                    var c = new creator(self.raph, self.auxHolder);
                 },
             },
         };
@@ -79,10 +79,12 @@ dojo.declare('CCC', [ ], {
         this.otherMenu = {
             size: 2,
             0: {
-                text: "Tutorial",
-                url: "tutorial",
+                text: "Map Creator",
+                url: "creator",
                 action: function(){
-                    
+                    self.raph.clear();
+                    dojo.disconnect(self.link);
+                    var c = new creator(self.raph, self.auxHolder);
                 },
             },
             1: {
