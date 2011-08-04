@@ -63,7 +63,6 @@ dojo.declare('creator', [ ], {
         
         this.link = dojo.connect(window, 'keydown', this, 'keyDown');
         
-        
         this.ci = 0;  //  currently selected index
         this.select = this.raph.rect(0,0,0,0);  // the object for the selection box
         this.tileSelected = null;  // the current name of the tile template selected
@@ -134,7 +133,6 @@ dojo.declare('creator', [ ], {
                     p[0] = null;
                 }  
             };
-            
         }
         
         // add the tile options
@@ -217,8 +215,10 @@ dojo.declare('creator', [ ], {
                     stroke: "#000",
                 });
             }
+            p[1].drag(dragMove, dragStart, dragStop);
         }    
     },
+    
     
     drawCursor: function(){
         var p;

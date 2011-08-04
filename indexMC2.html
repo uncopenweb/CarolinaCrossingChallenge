@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>CCC Map Builder</title>
+        <title>Drag N' Drop Practice</title>
         <style type="text/css">
             @import "http://ajax.googleapis.com/ajax/libs/dojo/1.5/dojo/resources/dojo.css";
             @import "http://ajax.googleapis.com/ajax/libs/dojo/1.5/dijit/themes/claro/claro.css";
@@ -26,37 +26,20 @@
         </script>
         <script type="text/javascript" src="/libs/uow.js"></script>
         <script type="text/javascript" src="raphael.js"></script>
-        <script type="text/javascript" src="maps/maps2.js"></script>
-        <script type="text/javascript" src="mapcreator.js"></script>
-        <script type="text/javascript">
-            // kick off the game by creating the object
+        <script type="text/javascript" src="mapcreator2.js"></script>
+        <script type="text/javascript" >
+                    // kick off the game by creating the object
             function main() {
-                var h1 = Raphael("holder", 500, 500);
-                var h2 = Raphael("holder", 500, 500);
-                var c = new creator(h2, h1);
+                var d = new dragndrop();
             }
-
             // don't start until everything is loaded
             dojo.ready(main);
         </script>
 
-    </head>
-    <body id='body'>
-            <form>
-            NE Building:
-        <input type="text" id="form1" />
-        <form>
-            NW Building:
-        <input type="text" id="form2" />
-        <form>
-            SE Building:
-        <input type="text" id="form3" />
-        <form>
-            SW Building:
-        <input type="text" id="form4" />
-        
-        <div id="holder"> 
 
-        </div> 
+    </head>
+    <body>
+
+    <div id="holder"></div>
     </body>
 </html>

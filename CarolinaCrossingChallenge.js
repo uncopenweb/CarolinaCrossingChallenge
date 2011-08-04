@@ -42,6 +42,7 @@ dojo.declare('CCC', [ ], {
                 action: function(){
                     self.raph.clear();
                     dojo.disconnect(self.link);
+                    self.audio.stop();
                     
                     // get a random tile in the chapel hill map
                     var map = MAPS.chapel_hill;
@@ -69,34 +70,16 @@ dojo.declare('CCC', [ ], {
                 text: "Map Creator",
                 url: "creator",
                 action: function(){
-                    self.raph.clear();
+                    self.raph.remove();
+                    self.auxHolder.remove();
                     dojo.disconnect(self.link);
-                    var c = new creator(self.raph, self.auxHolder);
+                    self.audio.stop();
+                    
+                    var c = new dragndrop();
                 },
             },
         };
-        
-        this.otherMenu = {
-            size: 2,
-            0: {
-                text: "Map Creator",
-                url: "creator",
-                action: function(){
-                    self.raph.clear();
-                    dojo.disconnect(self.link);
-                    var c = new creator(self.raph, self.auxHolder);
-                },
-            },
-            1: {
-                text: "Main Menu",
-                url: "main",
-                action: function(){
-                    self.currentMenu = self.mainMenu;
-                    self.currentTab = 0;
-                    self.displayMenu();
-                },
-            },
-        };
+
         
         this.chooseMap = {
             size: 3,
@@ -106,6 +89,7 @@ dojo.declare('CCC', [ ], {
                 action: function(){
                     self.raph.clear();
                     dojo.disconnect(self.link);
+                    self.audio.stop();
                     var s = new seeker(self.raph, self.auxHolder, MAPS.chapel_hill, 
                         "The Carolina Inn", 1, 2);
                 },
@@ -116,6 +100,7 @@ dojo.declare('CCC', [ ], {
                 action: function(){
                     self.raph.clear();
                     dojo.disconnect(self.link);
+                    self.audio.stop();
                     var s = new seeker(self.raph, self.auxHolder, MAPS.graham_nc, 
                         "Graham Middle School", 0, 3, 4, 2);
                 },
@@ -153,15 +138,16 @@ dojo.declare('CCC', [ ], {
     },
     
     displayMenu: function(){
+        var self = this;
         this.raph.clear();
             
         this.raph.image("images/menuBG.gif", 0, 0, 500, 500);
         
         for (i = 0 ; i < this.currentMenu.size ; i++){
-            this.raph.image("images/" + this.currentMenu[i].url + "N.png", 150, 75*i+250, 200, 50);
+            this.raph.image("images/" + this.currentMenu[i].url + "N.png", 150, 75*i+250, 200, 50).click(self.currentMenu[i].action)
         }
         this.raph.image("images/" + this.currentMenu[this.currentTab].url + "A.png",
-            150, 75*this.currentTab+250, 200, 50);
+            150, 75*this.currentTab+250, 200, 50).click(this.currentMenu[this.currentTab].action);
         this.audio.say({text: this.currentMenu[this.currentTab].text});
     },
     

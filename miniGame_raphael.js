@@ -13,7 +13,7 @@ dojo.declare('miniGame', [ ], {
     
     audio_info: null,  // the object that the JSON file becomes
     audio_url: null,   // the URL for the traffic clip
-    audio_file_number: 1,  // number of available traffic clips (mp3/ogg with adjoining JSON file)
+    audio_file_number: 3,  // number of available traffic clips (mp3/ogg with adjoining JSON file)
 
     
         // the constructor gets called when we create the object
@@ -64,6 +64,7 @@ dojo.declare('miniGame', [ ], {
     importFiles: function() {
         var self = this;
         var rnd = Math.floor(Math.random()*this.audio_file_number) + 1;  // the radomization of the audio file
+        dojo.byId('form1').value = rnd;
         
         // get the url for the sound file
         this.audio_url = 'sounds/traffic/' + rnd + this.whichSide;
