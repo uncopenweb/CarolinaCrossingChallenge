@@ -70,12 +70,7 @@ dojo.declare('CCC', [ ], {
                 text: "Map Creator",
                 url: "creator",
                 action: function(){
-                    self.raph.remove();
-                    self.auxHolder.remove();
-                    dojo.disconnect(self.link);
-                    self.audio.stop();
-                    
-                    var c = new dragndrop();
+                    window.location = 'indexMC.html'
                 },
             },
         };

@@ -1,30 +1,11 @@
+    dojo.require("dijit.form.Button");
+    dojo.require("dijit.Dialog");
+    dojo.require("dijit.form.TextBox");
 
+dojo.declare('dragndrop', [ ], {
 
-
-dojo.declare('creator', [ ], {
-
-    width: 500,         // dimensions of the canvas
-    height: 500,
-    
-    tile_template: {
-        type: 'fourway',
-        name: '',
-        
-        // the names of the roads
-        roadName: {
-            vert: 'Vertical Street',  // vertical street
-            horiz: 'Horizontal Street',  // horizontal street
-        },
-        
-        buildName: {
-            nw: "NW Corner",
-            ne: "NE Corner",
-            se: "SE Corner",
-            sw: "SW Corner",
-        },
-
-        BG_grid: null,
-    },
+    width: window.innerWidth,
+    height: window.innerHeight,
     
     type_number: {
         'fourway': 210,
@@ -39,563 +20,292 @@ dojo.declare('creator', [ ], {
         'secorner': 15,
         'swcorner': 35,
     },
+
+    constructor: function(holder) {
     
-        // Here the object that holds the information for the whole page.
-        // Each element of the object represents a buttons/spot on the page.
-        // 0 = file name of pic, 1 = Rapheal object, 2 = canvas,
-        //    3 = x pos, 4 = y pos, 5 = width, 6 = height,
-        //    7 = index above, 8 = to right, 9 = below, 10 = to left
-        //    11 = tile object for the "map" pieces
-        //
-    page: [],   
-    
+        var self = this;
+
+        this.raph = holder;
         
+        this.map = [];   // this is the object that holds all the map info (road names, building names, etc.)
+        this.mapGrid = [];    // This holds the raph objects for the map
+        this.tiles = [];  // this holds the tiles from which you can choose
+        this.tile_types = ['nwcorner', 'necorner', 'secorner', 'swcorner', 'vert', 'horiz',
+            'fourway', 'northt', 'eastt', 'southt', 'westt'];
+        this.currentlySelectedTile = null;
+
+        for (i = 0 ; i < 11 ; i++){
+            this.tiles[i] = this.raph.image("images/background/" + this.tile_types[i] + ".gif", 
+                300 + Math.floor(i/6)*100, 40 + (i%6)*80, 70, 70);
+            this.tiles[i].tileType = this.tile_types[i];
+            this.tiles[i].fresh = true;
+            this.setupCopyDrag(this.tiles[i]);
+        }
+
+        this.drawEmptyGrid();
+
+        dojo.connect(dijit.byId("button1"), "onClick", this, "getTileInfo");
+    },
     
-    
-        // the constructor gets called when we create the object
-    constructor: function(primHolder, auxHolder) {
-        var i, self;
+    setupDrag: function(raphObject, newURL, removeDrag){
+        var self, dragStart, dragMove, dragStop, startx, starty, stopx, stopy;
         self = this;
-       
-       // initilize the Raphael canvases
-        this.auxHolder = auxHolder;
-        this.raph = primHolder;
         
-        this.link = dojo.connect(window, 'keydown', this, 'keyDown');
-        
-        this.ci = 0;  //  currently selected index
-        this.select = this.raph.rect(0,0,0,0);  // the object for the selection box
-        this.tileSelected = null;  // the current name of the tile template selected
-        this.legal = true;  // whether the selection is illegal
-        
-        // the object that holds the raph text for the tile info
-        this.tileInfo1 = this.auxHolder.text(0, 0, " ").attr({
-            'font-size' : 14,
-        });
-                // the object that holds the raph text for the tile info
-        this.tileInfo2 = this.auxHolder.text(0, 0, " ").attr({
-            'font-size' : 14,
-        });
-        this.tileInfoBox = this.auxHolder.rect(0,0,0,0).attr({
-            fill: "#fff",
-            stroke: '#000',
-        });
-        
-        // the first 25 indices of the page are occupied by the empty "map"
-        for (i = 0 ; i < 25 ; i++){
-            this.page[i] = [
-                null, 
-                null, 
-                this.auxHolder, 
-                (i%5)*100,  // x and y
-                Math.floor(i/5)*100, 
-                100,        // width and height
-                100, 
-                i-5,        // index to above
-                i+1,        // to the right
-                i+5,        // below
-                i-1         // to the left
-            ];
-            if (i < 5) {this.page[i][7] = null;}
-            if (i%5 == 4) {this.page[i][8] = null;}
-            if (i >= 20) {this.page[i][9] = null;}
-            if (i == 0) {this.page[i][10] = 25;}
-            if (i == 5) {this.page[i][10] = 26;}
-            if (i == 10) {this.page[i][10] = 27;}
-            if (i == 15) {this.page[i][10] = 28;}
-            if (i == 20) {this.page[i][10] = 29;}
+        dragStart = function(){       
+            self.currentlySelectedTile = this;
             
-            // this is the function for the map tiles if ENTER is pressed
-            this.page[i][12] = function() {
-            
-                var p = this;
-                
-                // If a template tile is currently selected
-                if (self.tileSelected && self.legal){
-                    p[0] = self.tileSelected;
-                    self.tileSelected = null;
+            startx = Math.floor((this.attr("x") + 50)/100)-5;
+            starty = Math.floor((this.attr("y") + 20)/100);
 
-                    p[1].remove();
-                    p[1] = p[2].image("images/background/" + p[0] + ".gif", p[3], p[4], p[5], p[6]);
-                    
-                    self.getTileInfo();
-                }
-                
-                
-                // remove a tile from the map
-                else {
-                    p[1].remove();
-                    p[1] = p[2].rect(p[3], p[4], p[5], p[6]).attr({
-                        fill: "#ccc",
-                        stroke: "#000",
-                    });
-                    p[11] = null;
-                    p[0] = null;
-                }  
-            };
-        }
-        
-        // add the tile options
-        this.page[25] = ["fourway", null, this.raph, 
-            410, 55, 70, 70, 
-            null, 0, 26, 30];
-        this.page[26] = ["northt", null, this.raph, 
-            410, 135, 70, 70,  
-            25, 5, 27, 31];
-        this.page[27] = ["westt", null, this.raph, 
-            410, 215, 70, 70,  
-            26, 10, 28, 32];
-        this.page[28] = ["southt", null, this.raph, 
-            410, 295, 70, 70,  
-           27, 15, 29, 33];
-        this.page[29] = ["eastt", null, this.raph, 
-            410, 375, 70, 70,  
-            28, 20, null, 34];
-        this.page[30] = ["vert", null, this.raph, 
-            330, 15, 70, 70,  
-            null, 25, 31, 36];
-        this.page[31] = ["horiz", null, this.raph, 
-            330, 95, 70, 70,  
-            30, 26, 32, 36];
-        this.page[32] = ["nwcorner", null, this.raph, 
-            330, 175, 70, 70,  
-            31, 27, 33, 36];
-        this.page[33] = ["necorner", null, this.raph, 
-            330, 255, 70, 70,  
-            32, 28, 34, 36];
-        this.page[34] = ["secorner", null, this.raph, 
-            330, 335, 70, 70, 
-            33, 29, 35, 36];
-        this.page[35] = ["swcorner", null, this.raph, 
-            330, 415, 70, 70, 
-            34, 29, null, 36];
-            
-            // the function the template tiles when ENTER is pressed
-        for (i = 25 ; i < 36 ; i ++){
-            this.page[i][12] = function() {
-                self.tileSelected = this[0];
-            };
-        }
-        
-
-        this.page[36] = ["drawMap", null, this.raph, 100, 100, 200, 100, null, 31, null, null];
-        this.page[36][12] = function() {
-            self.createMap();
+            this.toFront();
+            this.ox = this.attr("x");
+            this.oy = this.attr("y");
+            this.attr({opacity: 0.5});
         };
         
+        dragMove = function(dx, dy){
+            this.attr({x: this.ox + dx, y: this.oy + dy,});
+        };
 
-        // initialize audio
-        uow.getAudio({ defaultCaching: true }).then(dojo.hitch(this, function(a) {
-            this.audio = a;  // save the audio object for later use
-            this.newGame();
-        }));
+        dragStop = function(){ 
+            var x = this.attr("x");
+            var y = this.attr("y");
+            if ( x > 450 && x < 950 && y > -20 && y < 480 ){
                 
-    },
-    
-    newGame: function(){
-            
-        this.drawPage();
-        this.drawCursor();
-    },
-    
-    drawPage: function(){
-        var i, p;
-        
-        for (i = 0 ; this.page[i] ; i++){
-            p = this.page[i];
-            if (p[0]){
-                p[1] = p[2].image("images/background/" + p[0] + ".gif", p[3], p[4], p[5], p[6]);
-                p[2].rect(p[3], p[4], p[5], p[6]).attr({
-                    'fill-opacity': 0,
-                    stroke: "#000",
-                });
+                endx = Math.floor((x + 50)/100)-5;
+                endy = Math.floor((y + 20)/100);            
+                self.placeTileOnGrid(endx + 5*endy, this, startx + starty*5);
             } else {
-                p[1] = p[2].rect(p[3], p[4], p[5], p[6]).attr({
-                    fill: "#ccc",
-                    stroke: "#000",
-                });
+                this.remove();
+                self.mapGrid[startx + 5*starty] = null;
             }
-            p[1].drag(dragMove, dragStart, dragStop);
-        }    
+        };        
+    
+        raphObject.drag(dragMove, dragStart, dragStop);
     },
     
-    
-    drawCursor: function(){
-        var p;
-        p = this.page[this.ci];
+    setupCopyDrag: function(raphObject, newURL, removeDrag){
+        var self, copy, dragStart, dragMove, dragStop, startx,starty;
+        self = this;
         
-        this.select.remove();
-
-        this.legal = this.ci < 25 ? this.isLegal() : true;
-        
-        if (this.tileSelected && this.ci < 25){
+        dragStart = function(){
+            copy = this.clone();
+            copy.tileType = this.tileType;
             
-            // if the move is legal, show an opaque picture of the tile
-            if (this.legal && !p[0]){
-                this.select = p[2].image("images/background/" + this.tileSelected + ".gif", 
-                    p[3],p[4],p[5],p[6]).attr({
-                        opacity: 0.25,
-                });
-            }
-            // if the move is not legal, show red rectangle
-            else {
-                this.select = p[2].rect(p[3],p[4],p[5],p[6]).attr({
-                    fill: "#f00",
-                    stroke: "#fff",
-                    opacity: 0.25,
-                });
-            }
+            self.currentlySelectedTile = copy;
+            
+            copy.toFront();
+            copy.ox = copy.attr("x");
+            copy.oy = copy.attr("y");
+            copy.attr({opacity: 0.5});
+        };
+        
+        dragMove = function(dx, dy){
+            copy.attr({x: copy.ox + dx, y: copy.oy + dy,});
+        };
 
+        dragStop = function(){ 
+            var x = copy.attr("x");
+            var y = copy.attr("y");
+            if ( x > 450 && x < 950 && y > -20 && y < 480 ){            
+                gridx = Math.floor((x + 35)/100)-5;
+                gridy = Math.floor((y + 5)/100); 
+                
+                self.setupDrag(copy);           
+                self.placeTileOnGrid(gridx + 5*gridy, copy);
+            } else {
+                copy.remove();
+                self.mapGrid[startx + 5*starty] = null;
+            }
+        };        
+    
+        raphObject.drag(dragMove, dragStart, dragStop);
+    },
+   
+
+    
+    drawEmptyGrid: function(){
+        var self = this;
+        
+        for (i = 0 ; i < 25 ; i++){
+            this.raph.rect(100*(i%5)+500,100*Math.floor(i/5)+30,100,100).attr({
+                fill: "#ccc",
+                stroke: "#000",
+            });
         }
-        // if a template tile is not selected, display a blue rectangle
+    },
+    
+    // this gets the information from the dialog box for the currentlySelectedTile
+    // This is connected with the "Change Tile Info" button in the dialog box
+    getTileInfo: function(){
+        var info = this.currentlySelectedTile.tileInfo;
+        
+        if (!info){
+            return;
+        }
+        
+        info.vert = dijit.byId("vert").attr('value');
+        info.horiz = dijit.byId("horiz").attr('value');
+        info.nw = dijit.byId("nw").attr('value');
+        info.ne = dijit.byId("ne").attr('value');
+        info.se = dijit.byId("se").attr('value');
+        info.sw = dijit.byId("sw").attr('value');
+        
+    },
+    
+    // prompts the pop up window to get the tile information
+    displayInfoBox: function(raphObject, index){
+        if (!raphObject.tileInfo){
+            raphObject.tileInfo = {
+                vert: "Avenue #" + (index%5 + 1),
+                horiz: "Street #" + (Math.floor(index/5) + 1),
+                nw: "a building",
+                ne: "a building",
+                se: "a building",
+                sw: "a building"
+            }
+        }
+        
+            // copy the name of the vertical road above or below the tile
+        if (index >= 5 && this.mapGrid[index-5]){
+            raphObject.tileInfo.vert = this.mapGrid[index-5].tileInfo.vert;
+        } else if (index < 20 && this.mapGrid[index+5]){
+            raphObject.tileInfo.vert = this.mapGrid[index+5].tileInfo.vert;
+        }
+        
+            // copy the name of the horizontal road to teh left or right of the tile
+        if (index%5 != 4 && this.mapGrid[index+1]){
+            raphObject.tileInfo.horiz = this.mapGrid[index+1].tileInfo.horiz;
+        } else if (index%5 != 0 && this.mapGrid[index-1]){
+            raphObject.tileInfo.horiz = this.mapGrid[index-1].tileInfo.horiz;
+        }
+
+        dijit.byId("vert").set('value',raphObject.tileInfo.vert);
+        dijit.byId("horiz").set('value', raphObject.tileInfo.horiz);
+        dijit.byId("nw").set('value', raphObject.tileInfo.nw);
+        dijit.byId("ne").set('value', raphObject.tileInfo.ne);
+        dijit.byId("se").set('value', raphObject.tileInfo.se);
+        dijit.byId("sw").set('value', raphObject.tileInfo.sw);
+    
+        formDlg = dijit.byId("formDialog");
+        
+        formDlg.show();
+        
+        
+    },
+    
+    // place raphObject into the map grid at the index
+    placeTileOnGrid: function(index, raphObject, startindex){
+        var isLegal = true;
+        
+    
+        if (!isNaN(startindex)){
+            this.mapGrid[startindex] = null;
+        }
+        
+        // check if the placement will be legal
+            // check above tile
+        if (index - 5 >= 0 && this.mapGrid[index-5] && 
+                (   
+                    (
+                        this.type_number[this.mapGrid[index-5].tileType]%5 == 0 && 
+                        this.type_number[raphObject.tileType]%2 != 0
+                    ) || 
+                    (
+                        this.type_number[this.mapGrid[index-5].tileType]%5 != 0 && 
+                        this.type_number[raphObject.tileType]%2 == 0
+                    )
+                )
+            ){
+            isLegal = false;
+        }
+            // check tile below
+        if (index + 5 < 20 && this.mapGrid[index+5] && 
+                (   
+                    (
+                        this.type_number[this.mapGrid[index+5].tileType]%2 == 0 && 
+                        this.type_number[raphObject.tileType]%5 != 0
+                    ) || 
+                    (
+                        this.type_number[this.mapGrid[index+5].tileType]%2 != 0 && 
+                        this.type_number[raphObject.tileType]%5 == 0
+                    )
+                )
+            ) {
+            isLegal = false;
+        }
+            // check tile to the right
+        if (index%5 != 4 && this.mapGrid[index+1] && 
+                (   
+                    (
+                        this.type_number[this.mapGrid[index+1].tileType]%7 == 0 && 
+                        this.type_number[raphObject.tileType]%3 != 0
+                    ) || 
+                    (
+                        this.type_number[this.mapGrid[index+1].tileType]%7 != 0 && 
+                        this.type_number[raphObject.tileType]%3 == 0
+                    )
+                )
+            ) {
+            isLegal = false;
+        }
+            // check tile to the left
+         if (index%5 != 0 && this.mapGrid[index-1] && 
+                (   
+                    (
+                        this.type_number[this.mapGrid[index-1].tileType]%3 == 0 && 
+                        this.type_number[raphObject.tileType]%7 != 0
+                    ) || 
+                    (
+                        this.type_number[this.mapGrid[index-1].tileType]%3 != 0 && 
+                        this.type_number[raphObject.tileType]%7 == 0
+                    )
+                )
+            ) {
+            isLegal = false;
+        }
+        
+            // what to do if the move is legal
+        if (isLegal){
+        
+            if (this.mapGrid[index]){
+                this.mapGrid[index].remove();
+            }
+            
+            this.mapGrid[index] = raphObject;
+            raphObject.attr({
+                x: (index%5+5)*100,
+                y: Math.floor(index/5)*100 + 30, 
+                opacity: 1, 
+                height: 100, 
+                width: 100
+            });
+        
+            this.displayInfoBox(raphObject, index);
+        }
+            // what to do if the move is illegal
         else {
-            this.select = p[2].rect(p[3],p[4],p[5],p[6]).attr({
-                fill: "#00f",
-                stroke: "#fff",
-                opacity: 0.25,
-            });
+                // the tile has no previous spot, so it is removed
+            if (isNaN(startindex)){
+                raphObject.remove();
+            }   // the tile moves back to its previous spot 
+            else {
+                this.mapGrid[startindex] = raphObject;
+                    raphObject.attr({
+                        x: (startindex%5+5)*100,
+                        y: Math.floor(startindex/5)*100 + 30, 
+                        opacity: 1, 
+                        height: 100, 
+                        width: 100
+                    });
+            }
         }
         
-        // display the current tile information
-        if (this.ci < 25 && p[11]){
-        
-            this.tileInfoBox.attr({
-                x: 200,
-                y: 0,
-                height: 100,
-                width: 300,
-                opacity: .9,
-            });
-            
-            this.tileInfo1.attr({
-                text:
-                    " \n Vertical Road:    " +
-                    " \n Horizontal Road:  " +
-                    " \n NW Building:      " +
-                    " \n NE Building:      " +
-                    " \n SE Building:      " +
-                    " \n SW Building:      " ,
-                x: 210,
-                y: 50,
-                'text-anchor': 'start',
-            });
-            this.tileInfo2.attr({
-                text:
-                    '~' + p[11].roadName.vert + '\n~' +
-                    p[11].roadName.horiz + '\n~' +
-                    p[11].buildName.nw + '\n~' + 
-                    p[11].buildName.ne + '\n~' + 
-                    p[11].buildName.se + '\n~' + 
-                    p[11].buildName.sw,
-                x: 400,
-                y: 50,
-            });
-            
-            if (this.ci%5 > 1 && Math.floor(this.ci/5) < 1){
-                this.tileInfoBox.attr('y', 100);
-                this.tileInfo1.attr('y', 150);
-                this.tileInfo2.attr('y', 150);
-            }
-            
-            this.tileInfoBox.toFront();
-            this.tileInfo1.toFront();
-            this.tileInfo2.toFront();
+    },
+    
+    
+    
+    
+    
 
-        } else {
-            this.tileInfoBox.attr({
-                height: 0,
-                width: 0,
-            });
-            this.tileInfo1.attr({
-                text: "",
-            });
-            this.tileInfo2.attr({
-                text: "",
-            });
-        }
-    },
-    
-    isLegal: function() {
-        var num, i, page;
-        num = this.type_number[this.tileSelected];  // the tile number of the currently selected tile
-        page = this.page;
-        i = this.ci;
-        
-        if (i < 20 && page[i+5][0] &&
-            !(num%5 == 0  && this.type_number[page[i+5][0]]%2 == 0) &&
-            !(num%5 != 0  && this.type_number[page[i+5][0]]%2 != 0)){
-            return false;
-        }
-        if (i >= 5 && page[i-5][0] &&
-            !(num%2 == 0  && this.type_number[page[i-5][0]]%5 == 0) &&
-            !(num%2 != 0  && this.type_number[page[i-5][0]]%5 != 0)){
-            return false;
-        }
-        if (i%5 != 4 && page[i+1][0] &&
-            !(num%3 == 0  && this.type_number[page[i+1][0]]%7 == 0) &&
-            !(num%3 != 0  && this.type_number[page[i+1][0]]%7 != 0)){
-            return false;
-        }
-        if (i%5 != 0 && page[i-1][0] &&
-            !(num%7 == 0  && this.type_number[page[i-1][0]]%3 == 0) &&
-            !(num%7 != 0  && this.type_number[page[i-1][0]]%3 != 0)){
-            return false;
-        }
-        
-        return true;
-    },
-    
-        
-    keyDown: function(e) {
-
-        if (e.keyCode == dojo.keys.UP_ARROW) {
-            if(this.page[this.ci][7] != null){
-                this.ci = this.page[this.ci][7];
-            }
-        }
-
-        else if (e.keyCode == dojo.keys.RIGHT_ARROW) {
-            if(this.page[this.ci][8] != null){
-                this.ci = this.page[this.ci][8];
-            }
-        }
-        
-        else if (e.keyCode == dojo.keys.DOWN_ARROW) {
-            if(this.page[this.ci][9] != null){
-                this.ci = this.page[this.ci][9];
-            }
-        }
-        
-        else if (e.keyCode == dojo.keys.LEFT_ARROW) {
-            if(this.page[this.ci][10] != null){
-                this.ci = this.page[this.ci][10];
-            }
-        }
-
-        
-        // Press Enter
-        else if (e.keyCode == dojo.keys.ENTER) {
-        
-            if (this.page[this.ci][12]){
-                this.page[this.ci][12]();
-            } else {
-                alert("There is an Error.  No function exists for object #" + this.ci + " on the page.");
-            }  // a function that each spot has
-        }
-
-        this.drawCursor();
-    },
-    
-    getTileInfo: function() {
-        var page, ci, tile, vert, horiz, v_default, h_default, streets;
-        tile = dojo.clone(this.tile_template);
-        
-        page = this.page;
-        ci =  this.ci;
-        
-        numbers = ['First', 'Second', 'Third', 'Fourth', 'Fifth'];
-        v_default = numbers[ci%5] + " Avenue";
-        h_default = numbers[Math.floor(ci/5)] + " Street";
-        
-        // check tile above current tile for an existing road
-        if (ci >= 5 && page[ci-5][0]){
-            if (this.type_number[page[ci][0]]%2 == 0 && this.type_number[page[ci-5][0]]%5 == 0){
-                v_default = page[ci-5][11].roadName.vert;
-            }
-        }
-        // check tile to right of current tile for an existing road
-        if (ci%5 != 4 && page[ci+1][0]){
-            if (this.type_number[page[ci][0]]%3 == 0 && this.type_number[page[ci+1][0]]%7 == 0){
-                h_default = page[ci+1][11].roadName.horiz;
-            }
-        }
-        // check tile below current tile for an existing road
-        if (ci < 20 && page[ci+5][0]){
-            if (this.type_number[page[ci][0]]%5 == 0 && this.type_number[page[ci+5][0]]%2 == 0){
-                v_default = page[ci+5][11].roadName.vert;
-            }
-        }
-        // check tile to left of current tile for an existing road
-        if (ci%5 != 0 && page[ci-1][0]){
-            if (this.type_number[page[ci][0]]%7 == 0 && this.type_number[page[ci-1][0]]%3 == 0){
-                h_default = page[ci-1][11].roadName.horiz;
-            }
-        }
-        
-        vert = prompt("Name of Vertical Road: ", v_default);
-        horiz = prompt("Name of Horizontal Road: ", h_default);
-        
-        tile.roadName.vert = vert;
-        tile.roadName.horiz = horiz;
-        
-        this.page[this.ci][11] = tile;
-        
-        
-        this.updateBuildings();
-    },
-    
-    // updates the building names for the current tile based on what's in the text boxes
-    updateBuildings: function(){
-        var tile = this.page[this.ci][11];
-        if (tile){
-            tile.buildName.ne = (dojo.byId("form1").value) ? 
-                dojo.byId("form1").value : "NE/" + this.ci%5 + Math.floor(this.ci/5);
-            tile.buildName.nw = (dojo.byId("form2").value) ? 
-                dojo.byId("form2").value : "NW/" + this.ci%5 + Math.floor(this.ci/5);
-            tile.buildName.se = (dojo.byId("form3").value) ? 
-                dojo.byId("form3").value : "SE/" + this.ci%5 + Math.floor(this.ci/5);
-            tile.buildName.sw = (dojo.byId("form4").value) ? 
-                dojo.byId("form4").value : "SW/" + this.ci%5 + Math.floor(this.ci/5);
-        }
-            
-    
-    },
-    
-    createMap: function(){
-        var map, i;
-        map = [];
-        for ( i = 0 ; i < 25 ; i++){
-        
-        }
-        alert("HELLOOOOO!");
-            
-    
-    },
-    
-    map_grids: {
-        'fourway': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
-            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            6: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-        'northt': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
-            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            6: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
-            7: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            8: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            9: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-        },
-        'eastt': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [7, 7, 7, 2, 1, 1, 2, 0, 0, 0],
-            4: [7, 7, 7, 0, 1, 1, 1, 1, 1, 1],
-            5: [7, 7, 7, 0, 1, 1, 1, 1, 1, 1],
-            6: [7, 7, 7, 2, 1, 1, 2, 0, 0, 0],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-        'southt': {
-            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            3: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
-            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            6: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-        'westt': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [0, 0, 0, 2, 1, 1, 2, 7, 7, 7],
-            4: [1, 1, 1, 1, 1, 1, 0, 7, 7, 7],
-            5: [1, 1, 1, 1, 1, 1, 0, 7, 7, 7],
-            6: [0, 0, 0, 2, 1, 1, 2, 7, 7, 7],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-        'horiz': {
-            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            3: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
-            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            6: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
-            7: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            8: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            9: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-        },
-        'vert': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [7, 7, 7, 2, 1, 1, 2, 7, 7, 7],
-            4: [7, 7, 7, 0, 1, 1, 0, 7, 7, 7],
-            5: [7, 7, 7, 0, 1, 1, 0, 7, 7, 7],
-            6: [7, 7, 7, 2, 1, 1, 2, 7, 7, 7],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-        'nwcorner': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [0, 0, 0, 2, 1, 1, 2, 7, 7, 7],
-            4: [1, 1, 1, 1, 1, 1, 0, 7, 7, 7],
-            5: [1, 1, 1, 1, 1, 1, 0, 7, 7, 7],
-            6: [0, 0, 0, 2, 0, 0, 2, 7, 7, 7],
-            7: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            8: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            9: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-        },
-        'necorner': {
-            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
-            3: [7, 7, 7, 2, 1, 1, 2, 0, 0, 0],
-            4: [7, 7, 7, 0, 1, 1, 1, 1, 1, 1],
-            5: [7, 7, 7, 0, 1, 1, 1, 1, 1, 1],
-            6: [7, 7, 7, 2, 0, 0, 2, 0, 0, 0],
-            7: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            8: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-            9: [6, 6, 6, 7, 7, 7, 7, 5, 5, 5],
-        },
-        'secorner': {
-            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            3: [7, 7, 7, 2, 0, 0, 2, 0, 0, 0],
-            4: [7, 7, 7, 0, 1, 1, 1, 1, 1, 1],
-            5: [7, 7, 7, 0, 1, 1, 1, 1, 1, 1],
-            6: [7, 7, 7, 2, 1, 1, 2, 0, 0, 0],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-        'swcorner': {
-            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
-            3: [0, 0, 0, 2, 0, 0, 2, 7, 7, 7],
-            4: [1, 1, 1, 1, 1, 1, 0, 7, 7, 7],
-            5: [1, 1, 1, 1, 1, 1, 0, 7, 7, 7],
-            6: [0, 0, 0, 2, 1, 1, 2, 7, 7, 7],
-            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
-        },
-    },        
-    
 });
-
