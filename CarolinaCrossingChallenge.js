@@ -7,6 +7,48 @@
 //  - Build the menus with more options/links
 //  - Work on the mini game to make more aesthetic and professional
 
+dojo.require("dojo.data.ItemFileReadStore");
+dojo.require("dijit.form.ComboBox");
+dojo.require("dijit.form.Button");
+
+
+
+var MAPS2 = {
+    identifier: 'name',
+    label: 'name',
+    items: [{
+        name: "Chapel Hill",
+    },
+    {
+        name: "Grahah, NC"
+    }]
+}
+
+var storeData2 = {
+    identifier: 'abbr',
+    label: 'name',
+    items: [{
+        abbr: 'ec',
+        name: 'Ecuador',
+        capital: 'Quito'
+    },
+    {
+        abbr: 'eg',
+        name: 'Egypt',
+        capital: 'Cairo'
+    },
+    {
+        abbr: 'sv',
+        name: 'El Salvador',
+        capital: 'San Salvador'
+    },
+    {
+        abbr: 'et',
+        name: 'Ethiopia',
+        capital: 'Addis Ababa'
+    }]
+}
+
 // This is the menu screen, which selects the game, other menus, and tutorials etc.
 
 dojo.declare('CCC', [ ], {

@@ -200,22 +200,22 @@ dojo.declare('miniGame', [ ], {
                 var a;
                 
                 if (this.status_queue[0] == 'crosstraffic'){
-                    a = this.audio.say({text: "You walked very early. " + 
-                        " Be sure there are no cars passing in front of you when you decide to cross."});
+                    a = this.audio.say({text: "You walked too early into the perpendicular traffic. " + 
+                        " Wait until the parallel traffic surges on your side."});
                 }
                 else if (this.status_queue[0] == 'crossstopping'){
                     a = this.audio.say({text: "You walked too early. " + 
-                        " Wait until you hear the car in front of you completely stop and the cars next to surge"});
+                        " Wait until you hear the perpendicular traffic completely stop and the parallel traffic surge"});
                 }
                 else if (this.status_queue[0] == 'sidestopping'){
                     a = this.audio.say({text: "You walked too late. " + 
-                        " The cars next to you were stopping, so you did not have enough time to cross. " +  
-                        " Try to walk  more quickly next time."});
+                        " The parallel was stopping and did not have enough time to cross. " +  
+                        " Try to cross as soon as you hear the parallel traffic surging."});
                 }
                 else if (this.status_queue[0] == 'crosssurging'){
-                    a = this.audio.say({text: "You walked very late. " + 
-                        " The cars in front of you were surging, so you walked into traffic. " +  
-                        " Take your time and wait for the next safe time to walk."});
+                    a = this.audio.say({text: "You walked too late. " + 
+                        " The parallel traffic was surging, so you walked into traffic. " +  
+                        " Take your time and wait for the parallel traffic to start again."});
                 }
                     
                 a.callAfter( function(){

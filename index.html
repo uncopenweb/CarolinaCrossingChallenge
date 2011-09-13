@@ -33,7 +33,19 @@
         <script type="text/javascript" src="CarolinaCrossingChallenge.js"></script>
 
     </head>
-    <body>
+    <body class=" claro ">
+    
+        <div dojoType="dojo.data.ItemFileReadStore" data="MAPS2" jsId="maps">
+        </div>
+        
+        <div dojoType="dijit.form.ComboBox" id="cmbox" store="maps" searchAttr="name">
+        </div>
+        
+        <button dojoType="dijit.form.Button" type="button" id="button1" onClick="alert(' the capitol is ' +   dijit.byId('cmbox').attr('value'));">
+        Click Here
+        </button>
+        
+        
         <form>
             Facing Street:
         <input type="text" id="form1" />

@@ -27,7 +27,13 @@ dojo.declare('dragndrop', [ ], {
 
         this.raph = holder;
         
-        this.map = [];   // this is the object that holds all the map info (road names, building names, etc.)
+            // this is the raphael canvas for the pop-up box
+        this.popup = Raphael("picture", 130, 100);
+        this.popup.image("images/background/fourway.gif", 20, 0, 100, 100);
+
+
+        
+
         this.mapGrid = [];    // This holds the raph objects for the map
         this.tiles = [];  // this holds the tiles from which you can choose
         this.tile_types = ['nwcorner', 'necorner', 'secorner', 'swcorner', 'vert', 'horiz',
@@ -41,10 +47,23 @@ dojo.declare('dragndrop', [ ], {
             this.tiles[i].fresh = true;
             this.setupCopyDrag(this.tiles[i]);
         }
+        
+        var rect = this.raph.rect(100, 400, 150, 50, 10).attr({
+            stroke: "#000",
+            fill:"#aaf",
+            'stroke-width': 5,
+        });
+        var quit = this.raph.text(175, 425, "Create the map!").attr({
+            'font-size': 18,
+        });
+        this.quitButton = this.raph.set(rect, quit);
+        
+        
 
         this.drawEmptyGrid();
 
         dojo.connect(dijit.byId("button1"), "onClick", this, "getTileInfo");
+        this.quitButton.click(this.createTheMap, this);
     },
     
     setupDrag: function(raphObject, newURL, removeDrag){
@@ -122,7 +141,6 @@ dojo.declare('dragndrop', [ ], {
         raphObject.drag(dragMove, dragStart, dragStop);
     },
    
-
     
     drawEmptyGrid: function(){
         var self = this;
@@ -186,16 +204,21 @@ dojo.declare('dragndrop', [ ], {
         dijit.byId("ne").set('value', raphObject.tileInfo.ne);
         dijit.byId("se").set('value', raphObject.tileInfo.se);
         dijit.byId("sw").set('value', raphObject.tileInfo.sw);
+        
+        dojo.byId("picture")
     
         formDlg = dijit.byId("formDialog");
         
         formDlg.show();
         
         
+        
+        
     },
     
     // place raphObject into the map grid at the index
-    placeTileOnGrid: function(index, raphObject, startindex){
+    placeTileOnGrid: function(index, raphObject, startindex){        
+    
         var isLegal = true;
         
     
@@ -291,21 +314,334 @@ dojo.declare('dragndrop', [ ], {
             }   // the tile moves back to its previous spot 
             else {
                 this.mapGrid[startindex] = raphObject;
-                    raphObject.attr({
-                        x: (startindex%5+5)*100,
-                        y: Math.floor(startindex/5)*100 + 30, 
-                        opacity: 1, 
-                        height: 100, 
-                        width: 100
-                    });
+                raphObject.attr({
+                    x: (startindex%5+5)*100,
+                    y: Math.floor(startindex/5)*100 + 30, 
+                    opacity: 1, 
+                    height: 100, 
+                    width: 100
+                });
             }
         }
         
     },
     
+    createTheMap: function(){
     
+        var mapName, finalMap, i, tile, info;
+        
+        if (confirm("Press 'okay' if you are finished editing your map.")){
+            mapName = prompt("What is the name of this Map?");
+        } else {
+            return;
+        }
+        
+        // instantiate the map
+        finalMap = {
+            name: mapName,
+            height: 5,
+            width: 5,
+            0: [], 
+            1: [],
+            2: [],
+            3: [],
+            4: [],
+        };
+        
+        for (i = 0 ; i < 25 ; i++){
+            if (!this.mapGrid[i]){
+                finalMap[Math.floor(i/5)][i%5] = null;
+            } else {
+                info = this.mapGrid[i].tileInfo;
+
+                if (!finalMap.start){
+                    finalMap.start = [Math.floor(i/5), i%5];
+                }
+                
+                finalMap[Math.floor(i/5)][i%5] = {
+                
+                    type: this.mapGrid[i].tileType,
+                    
+                    roadName: {
+                        vert: info.vert,
+                        horiz: info.horiz,
+                    },
+                    
+                    buildName: {
+                        nw: info.nw,
+                        ne: info.ne,
+                        se: info.se,
+                        sw: info.sw,
+                    },
+                    
+                    BG_grid: MAP_GRIDS[this.mapGrid[i].tileType],
+  
+                };
+            }
+        }
+        
+        // trim off excess tile spaces
+        var isOkay, ht, wd;
+        
+            //remove empty rows from the top
+        isOkay = false;
+        while (!isOkay){
+            for (wd = 0 ; wd < finalMap.width ; wd++){
+                if (finalMap[0][wd] != null){
+                    isOkay = true;
+                }
+            }
+            if (!isOkay){
+                for ( ht = 1 ; ht < finalMap.height ; ht++){
+                    for (wd = 0 ; wd < finalMap.width ; wd++){
+                        finalMap[ht-1][wd] = finalMap[ht][wd];
+                    }
+                }
+                finalMap.height--;
+            }
+        }
+            //remove empty rows from below
+        isOkay = false;
+        while (!isOkay){
+            for (wd = 0 ; wd < finalMap.width ; wd++){
+                if (finalMap[finalMap.height-1][wd] != null){
+                    isOkay = true;
+                }
+            }
+            if (!isOkay){
+                finalMap.height--;
+            }  
+        }
+            //remove empty rows from the left
+        isOkay = false;
+        while (!isOkay){
+            for (ht = 0 ; ht < finalMap.height ; ht++){
+                if (finalMap[ht][0] != null){
+                    isOkay = true;
+                }
+            }
+            if (!isOkay){
+                for ( wd = 1 ; wd < finalMap.width ; wd++){
+                    for (ht =0 ; ht < finalMap.height ; ht++){
+                        finalMap[ht][wd-1] = finalMap[ht][wd];
+                    }
+                }
+                finalMap.width--;
+            }  
+        }
+            //remove empty rows from the right
+        isOkay = false;
+        while (!isOkay){
+            for (ht = 0 ; ht < finalMap.height ; ht++){
+                if (finalMap[ht][finalMap.width-1] != null){
+                    isOkay = true;
+                }
+            }
+            if (!isOkay){
+                finalMap.width--;
+            }
+        }
+        
+        this.showMap(finalMap);
+        
+            // save the map the online database
+        if (confirm("Would like to save this map online?")){
+                // make sure the user has a name for the map
+            while (mapName == ""){
+                mapName = prompt("You need a name for the map.  What is it?");
+                finalMap.name = mapName;
+            }
+            
+            if (!mapName) return;
+        
+            var def = uow.data.getDatabase({
+                database: 'CCC', 
+                collection : 'maps', 
+                mode : 'c'
+            });
+            
+            def.then(function(db) {
+                db.newItem({mapName: finalMap});
+                db.save();
+            });
+            
+            alert("Congrats! You did it!");
+        }
+    },
     
+        // This is for testing reasons, and NOT TO BE USED IN THE FINAL CREATION
+    showMap: function(theMap){
+
     
-    
+        var hold = this.raph;
+        // height and width of each of the tiles in the minimap
+        var sz = Math.min(300/(theMap.height),300/(theMap.width));
+        
+        var cell_type; // this 
+        this.raph.image("images/gps.gif", 0, 0, 500, 500);
+        
+        // draw all the tiles
+        for (var x = 0 ; x < theMap.width; x++){
+            for (var y = 0 ; y < theMap.height ; y++){
+                if (theMap[y] && theMap[y][x]){
+                    // display the tile picture
+                   hold.image("images/background/"+theMap[y][x].type+".gif", x*sz+100, y*sz+100, sz, sz);
+                   
+
+                } else {
+                    hold.rect(x*sz + 100, y*sz + 100, sz, sz).attr({fill: "#000", stroke: "#000",});
+                }
+                
+
+            }
+        }
+
+    },
 
 });
+
+MAP_GRIDS = {
+
+    'fourway':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
+            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            6: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+    
+    'northt':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
+            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            6: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+            7: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            8: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            9: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+    },
+    
+    'eastt':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [10,10,10,2, 1, 1, 2, 0, 0, 0],
+            4: [10,10,10,0, 1, 1, 1, 1, 1, 1],
+            5: [10,10,10,0, 1, 1, 1, 1, 1, 1],
+            6: [10,10,10,2, 1, 1, 2, 0, 0, 0],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+    
+    'southt':{
+            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            3: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            6: [0, 0, 0, 2, 1, 1, 2, 0, 0, 0],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+
+    'westt':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [0, 0, 0, 2, 1, 1, 2, 8, 8, 8],
+            4: [1, 1, 1, 1, 1, 1, 0, 8, 8, 8],
+            5: [1, 1, 1, 1, 1, 1, 0, 8, 8, 8],
+            6: [0, 0, 0, 2, 1, 1, 2, 8, 8, 8],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+    
+    'vert':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [10,10,10,2, 1, 1, 2, 8, 8, 8],
+            4: [10,10,10,0, 1, 1, 0, 8, 8, 8],
+            5: [10,10,10,0, 1, 1, 0, 8, 8, 8],
+            6: [10,10,10,2, 1, 1, 2, 8, 8, 8],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+    
+    'horiz':{
+            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            3: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+            4: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            5: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            6: [0, 0, 0, 2, 0, 0, 2, 0, 0, 0],
+            7: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            8: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            9: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+    },
+    
+    'nwcorner':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [0, 0, 0, 2, 1, 1, 2, 8, 8, 8],
+            4: [1, 1, 1, 1, 1, 1, 0, 8, 8, 8],
+            5: [1, 1, 1, 1, 1, 1, 0, 8, 8, 8],
+            6: [0, 0, 0, 2, 0, 0, 2, 8, 8, 8],
+            7: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            8: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            9: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+    },
+    
+    'necorner':{
+            0: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            1: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            2: [3, 3, 3, 0, 1, 1, 0, 4, 4, 4],
+            3: [10,10,10,2, 1, 1, 2, 0, 0, 0],
+            4: [10,10,10,0, 1, 1, 1, 1, 1, 1],
+            5: [10,10,10,0, 1, 1, 1, 1, 1, 1],
+            6: [10,10,10,2, 0, 0, 2, 0, 0, 0],
+            7: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            8: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+            9: [6, 6, 6, 9, 9, 9, 9, 5, 5, 5],
+    },
+    
+    'secorner':{
+            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            3: [10,10,10,2, 0, 0, 2, 0, 0, 0],
+            4: [10,10,10,0, 1, 1, 1, 1, 1, 1],
+            5: [10,10,10,0, 1, 1, 1, 1, 1, 1],
+            6: [10,10,10,2, 1, 1, 2, 0, 0, 0],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+    
+    'swcorner':{
+            0: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            1: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            2: [3, 3, 3, 7, 7, 7, 7, 4, 4, 4],
+            3: [0, 0, 0, 2, 0, 0, 2, 8, 8, 8],
+            4: [1, 1, 1, 1, 1, 1, 0, 8, 8, 8],
+            5: [1, 1, 1, 1, 1, 1, 0, 8, 8, 8],
+            6: [0, 0, 0, 2, 1, 1, 2, 8, 8, 8],
+            7: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            8: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+            9: [6, 6, 6, 0, 1, 1, 0, 5, 5, 5],
+    },
+}

@@ -1,4 +1,6 @@
 
+dojo.require("dojo.hash");
+
 // these are the different possible types of tiles
 // 0 = four-way; 1 = T-shape pointing North; 2,3,4 = East, South, West; 5 = vertical street; 6 = horiz street
 tile_types = ['fourway', 'northt', 'eastt', 'southt', 'westt', 'vert', 'horiz'];
@@ -34,6 +36,12 @@ dojo.declare('seeker', [ ], {
        // initilize the Raphael canvases
         this.auxHolder = auxHolder;
         this.raph = primHolder;
+        
+        // toggle the visibility of the game, allowing for palyers with sight to play
+        this.visibility = true;
+        
+        // testing the Dojo hash function
+        dojo.byId("form3").value = dojo.hash().split("&");
 
         //initalize the player
         this.player = {
@@ -46,10 +54,10 @@ dojo.declare('seeker', [ ], {
         
         // initalize the current tile
         if (!map){
-            map = MAPS.graham_nc;
-            obj = "Graham Middle School";
-            objx = 0; // the column
-            objy = 3; // the row
+            map = MAPS.chapel_hill;
+            obj = "The Carolina Inn";
+            objx = 1; // the column
+            objy = 2; // the row
         }      
         this.currentMap = map;
         
@@ -80,10 +88,7 @@ dojo.declare('seeker', [ ], {
     newGame: function() {
         var self = this;
     
-
-            
         
-    
         this.createBG();
         this.createPlayer();
         this.createGPSMap();
@@ -315,7 +320,7 @@ dojo.declare('seeker', [ ], {
             // check if the player walks into a building
             if (cell_type > 2){
                 this.audio.stop();
-                this.audio.say({text: "you are running into a building"});
+                this.audio.say({text: "You cannot walk into this building."});
                 return;
             }
             
@@ -336,7 +341,6 @@ dojo.declare('seeker', [ ], {
             // check if the player walks off the street corner
             if (this.player.onCorner && cell_type == 0){
                 this.audio.stop();
-                this.audio.say({text: "You have walked off the street corner."})
                 //this.audio.play({url: "sounds/corner", channel: "bgnoise"});
                 this.player.onCorner = false;
             }
@@ -351,7 +355,7 @@ dojo.declare('seeker', [ ], {
                     this.miniGamePrompt();
                     return;
                 } else {                    
-                    this.audio.say({text: "You just ran into the street, turn left or right and keep on walking."});
+                    this.audio.say({text: "You cannot cross the street here. First walk to a street corner, then try to cross the street."});
                     return;
                 }
             }
@@ -363,7 +367,7 @@ dojo.declare('seeker', [ ], {
             var x_move = this.x_map[this.player.direction]*this.player.speed;
             var y_move = this.y_map[this.player.direction]*this.player.speed;
             
-            // move the player on the screeb
+            // move the player on the screen
             this.player.body.translate(x_move, y_move);
             this.player.face.translate(x_move, y_move);
             
@@ -627,9 +631,6 @@ dojo.declare('seeker', [ ], {
             this.createGPSMap();
             // if the player won the mini game, put him across the street
             if (game.isSuccess == true){
-            
-            
-                this.audio.say({text: "You just crossed " + this.facingRoad()});
                 
                 this.player.body.translate(this.x_map[this.player.direction]*0.24*this.height,
                     this.y_map[this.player.direction]*0.24*this.width);
@@ -639,7 +640,19 @@ dojo.declare('seeker', [ ], {
                 this.player.y_pos += this.y_map[this.player.direction]*0.24*this.width;
                 this.updateGPSMapPlayer();
                 
-                this.audio.say({text: "You are standing next to " + this.findNearestBuilding()});
+                // check if the player is on the same tile as the destination building
+                if (this.tilePos[0] == this.objective.x && this.tilePos[1] == this.objective.y){
+                    // the player found the building, so the game ends! 
+                    // We play celebration music and go back to the home screen
+                    if (this.objective.name == this.findNearestBuilding()){
+                        return this.winGame();
+                    }
+                } else {
+                    this.player.direction = (this.player.direction + 2)%4;
+                    this.audio.say({text: "Congratulations! You just crossed " + this.facingRoad()});
+                    this.player.direction = (this.player.direction + 2)%4;
+                    this.audio.say({text: "You are now standing next to " + this.findNearestBuilding()});
+                }
             }
         }
         else {
