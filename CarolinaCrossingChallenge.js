@@ -20,7 +20,7 @@ var MAPS2 = {
         name: "Chapel Hill",
     },
     {
-        name: "Grahah, NC"
+        name: "Graham, NC"
     }]
 }
 
@@ -56,7 +56,7 @@ dojo.declare('CCC', [ ], {
     width: 500,         // dimensions of the canvas
     height: 500,
    
-        
+    
     
         // the constructor gets called when we create the object
     constructor: function(primHolder, auxHolder) {
@@ -64,6 +64,8 @@ dojo.declare('CCC', [ ], {
        // initilize the Raphael canvases
         this.auxHolder = auxHolder;
         this.raph = primHolder;
+        this.GPSvisible = true;
+        
         
         var self = this;    
            
@@ -73,6 +75,7 @@ dojo.declare('CCC', [ ], {
                 text: "Play Game",
                 url: "playgame",
                 action: function(){
+                	self.audio.stop();
                     self.currentMenu = self.chooseMap;
                     self.currentTab = 0;
                     self.displayMenu();
@@ -112,6 +115,7 @@ dojo.declare('CCC', [ ], {
                 text: "Map Creator",
                 url: "creator",
                 action: function(){
+                	self.audio.stop();
                     window.location = 'indexMC.html'
                 },
             },
@@ -128,7 +132,7 @@ dojo.declare('CCC', [ ], {
                     dojo.disconnect(self.link);
                     self.audio.stop();
                     var s = new seeker(self.raph, self.auxHolder, MAPS.chapel_hill, 
-                        "The Carolina Inn", 1, 2);
+                        "The Carolina Inn", 1, 2, 0, 0, self.GPSvisible);
                 },
             },
             1: {
@@ -139,13 +143,14 @@ dojo.declare('CCC', [ ], {
                     dojo.disconnect(self.link);
                     self.audio.stop();
                     var s = new seeker(self.raph, self.auxHolder, MAPS.graham_nc, 
-                        "Graham Middle School", 0, 3, 4, 2);
+                        "Graham Middle School", 0, 3, 4, 2, self.GPSvisible);
                 },
             },
             2: {
                 text: "Main Menu",
                 url: "main",
                 action: function(){
+                	self.audio.stop();
                     self.currentMenu = self.mainMenu;
                     self.currentTab = 0;
                     self.displayMenu();
@@ -186,6 +191,18 @@ dojo.declare('CCC', [ ], {
         this.raph.image("images/" + this.currentMenu[this.currentTab].url + "A.png",
             150, 75*this.currentTab+250, 200, 50).click(this.currentMenu[this.currentTab].action);
         this.audio.say({text: this.currentMenu[this.currentTab].text});
+        if (this.GPSvisible){
+        	this.raph.image("images/gpsA.png", 20, 430, 50, 50).click(function(){
+        		self.GPSvisible = false;
+        		self.displayMenu();
+        	});
+       } else {
+        	this.raph.image("images/gpsN.png", 20, 430, 50, 50).click(function(){
+        		self.GPSvisible = true;
+        		self.displayMenu();
+        	});
+       }
+       	
     },
     
         

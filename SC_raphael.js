@@ -31,17 +31,24 @@ dojo.declare('seeker', [ ], {
         // map is the object of the map that is used in this game
         // obj is the name of the objective building, objy is the row, and objx is the column
         // startx is the row of the starting tile, and starty is the column
-    constructor: function(primHolder, auxHolder, map, obj, objx, objy, startx, starty) {
+    constructor: function(primHolder, auxHolder, map, obj, objx, objy, startx, starty,  GPSvis) {
        
        // initilize the Raphael canvases
         this.auxHolder = auxHolder;
         this.raph = primHolder;
         
-        // toggle the visibility of the game, allowing for palyers with sight to play
+        
+        this.GPSvisibility = GPSvis == false ? false : true;  //toggles whether the GPS is visible or not
         this.visibility = true;
+        // toggle the visibility of the game, allowing for players with sight to play
+        for (i = 0 ; dojo.hash().split("&")[i] ; i++){
+            if (dojo.hash().split("&")[i] == 'hidden'){
+                this.visibility = false;
+            }
+        }
         
         // testing the Dojo hash function
-        dojo.byId("form3").value = dojo.hash().split("&");
+        dojo.byId("form3").value = dojo.hash().split("&")[0];
 
         //initalize the player
         this.player = {
@@ -52,7 +59,7 @@ dojo.declare('seeker', [ ], {
             onCorner: true,
         }
         
-        // initalize the current tile
+        // initalize the current tile, if the map is specified in the parameters, use chapel hill
         if (!map){
             map = MAPS.chapel_hill;
             obj = "The Carolina Inn";
@@ -88,7 +95,6 @@ dojo.declare('seeker', [ ], {
     newGame: function() {
         var self = this;
     
-        
         this.createBG();
         this.createPlayer();
         this.createGPSMap();
@@ -119,6 +125,10 @@ dojo.declare('seeker', [ ], {
     },
     
     createPlayer: function() {
+        // if the game is NOT visible, do not run this function
+        if (!this.visibility){
+            return;
+        }
         
         if (this.player.direction == 0){
             this.player.face = this.raph.rect(this.player.x_pos - 2, this.player.y_pos - 15, 4, 10).attr({
@@ -149,6 +159,12 @@ dojo.declare('seeker', [ ], {
     },
     
     createBG: function() {
+        // if the game is NOT visible, do not run this function
+        if (!this.visibility){
+            this.raph.text(250, 250, "The visibility is turned off.\n To turn it back on, delete 'hidden' after the hash tag in the URL bar");
+            return;
+        } 
+    
         var sz = this.height/10;
         var num;
     
@@ -197,6 +213,12 @@ dojo.declare('seeker', [ ], {
     },
     
     createGPSMap: function(){
+        // if the game is NOT visible, do not run this function
+        if (!this.visibility || !this.GPSvisibility){
+        	this.auxHolder.text(250, 250, "The GPS visibility is turned off.");
+            return;
+        }
+    
         var hold = this.auxHolder;
         // height and width of each of the tiles in the minimap
         var sz = Math.min(300/(this.currentMap.height),300/(this.currentMap.width));
@@ -245,11 +267,16 @@ dojo.declare('seeker', [ ], {
         }
         this.updateGPSMapPlayer();
         hold.text(250, 430, "Controls\n\nUP: Move your player forward\n\nLEFT/RIGHT: Turn your player left/right" + 
-            "\n\nDOWN: Use GPS to get player direction and position on the map");
+            "\n\nDOWN: Use GPS to get player direction and position on the map\nSPACE: Information about the destination building.");
     },
     
         // draw the player on the GPS map
     updateGPSMapPlayer: function(){
+        // if the game is NOT visible, do not run this function
+        if (!this.visibility || !this.GPSvisibility){
+            return;
+        }
+    
         // remove the player from the screen
         if (this.GPSMapPlayer){
             this.GPSMapPlayer.remove();
@@ -367,9 +394,12 @@ dojo.declare('seeker', [ ], {
             var x_move = this.x_map[this.player.direction]*this.player.speed;
             var y_move = this.y_map[this.player.direction]*this.player.speed;
             
-            // move the player on the screen
-            this.player.body.translate(x_move, y_move);
-            this.player.face.translate(x_move, y_move);
+            // turn the player left on the screen if the screen is visible
+            if (this.visibility){
+                // move the player on the screen
+                this.player.body.translate(x_move, y_move);
+                this.player.face.translate(x_move, y_move);
+            }
             
             // update the position of the player object
             this.player.x_pos += x_move;
@@ -381,16 +411,22 @@ dojo.declare('seeker', [ ], {
         
         // turn the player left
         if (e.keyCode == dojo.keys.LEFT_ARROW) {
-            if (this.player.direction == 0){
-                this.player.face.translate(-10, 10);
-            } else if (this.player.direction == 1){
-                this.player.face.translate(-10, -10);
-            } else if (this.player.direction == 2){
-                this.player.face.translate(10, -10);
-            } else if (this.player.direction == 3){
-                this.player.face.translate(10, 10);
+        
+            // turn the player left on the screen if the screen is visible
+            if (this.visibility){
+                if (this.player.direction == 0){
+                    this.player.face.translate(-10, 10);
+                } else if (this.player.direction == 1){
+                    this.player.face.translate(-10, -10);
+                } else if (this.player.direction == 2){
+                    this.player.face.translate(10, -10);
+                } else if (this.player.direction == 3){
+                    this.player.face.translate(10, 10);
+                }
+                this.player.face.rotate(-90);
             }
-            this.player.face.rotate(-90);
+            
+            
             this.player.direction = (this.player.direction+3)%4;
             
             this.audio.stop();
@@ -406,16 +442,21 @@ dojo.declare('seeker', [ ], {
         
         // turn the player right
         if (e.keyCode == dojo.keys.RIGHT_ARROW) {
-            if (this.player.direction == 0){
-                this.player.face.translate(10, 10);
-            } else if (this.player.direction == 1){
-                this.player.face.translate(-10, 10);
-            } else if (this.player.direction == 2){
-                this.player.face.translate(-10, -10);
-            } else if (this.player.direction == 3){
-                this.player.face.translate(10, -10);
+        
+            // turn the player left on the screen if the screen is visible
+            if (this.visibility){
+                if (this.player.direction == 0){
+                    this.player.face.translate(10, 10);
+                } else if (this.player.direction == 1){
+                    this.player.face.translate(-10, 10);
+                } else if (this.player.direction == 2){
+                    this.player.face.translate(-10, -10);
+                } else if (this.player.direction == 3){
+                    this.player.face.translate(10, -10);
+                }
+                this.player.face.rotate(90);
             }
-            this.player.face.rotate(90);
+            
             this.player.direction = (this.player.direction+1)%4;
             
             this.audio.stop();
@@ -501,23 +542,17 @@ dojo.declare('seeker', [ ], {
             }
         } else {
             var dist, dir, unit;
-            dist = this.objective.x - this.tilePos[1];
+            dist = this.objective.y - this.tilePos[1];
             if (dist != 0){;
-                dir = 'east';
-                if (dist < 0){
-                    dist = -dist;
-                    dir = 'west';
-                }
+                dir = dist < 0 ? "west" : 'east';
+                dist = Math.abs(dist);
                 unit = (dist == 1) ? ' block ': ' blocks ';
                 this.audio.say({text: this.objective.name + " is" + dist + unit + dir + " and "});
             }
-            dist = this.objective.y - this.tilePos[0]
+            dist = this.objective.x - this.tilePos[0]
             if (dist != 0){;
-                dir = 'south';
-                if (dist < 0){
-                    dist = -dist;
-                    dir = 'north';
-                }
+                dir = dist < 0 ? 'north' : 'south';
+                dist = Math.abs(dist);
                 unit = (dist == 1) ? ' block ': ' blocks ';
                 this.audio.say({text: dist + unit + dir});
             }
@@ -632,10 +667,14 @@ dojo.declare('seeker', [ ], {
             // if the player won the mini game, put him across the street
             if (game.isSuccess == true){
                 
-                this.player.body.translate(this.x_map[this.player.direction]*0.24*this.height,
-                    this.y_map[this.player.direction]*0.24*this.width);
-                this.player.face.translate(this.x_map[this.player.direction]*0.24*this.height,
-                    this.y_map[this.player.direction]*0.24*this.width);
+                // move the player across the street on the screen if the screen is visible
+                if (this.visibility){
+                    this.player.body.translate(this.x_map[this.player.direction]*0.24*this.height,
+                        this.y_map[this.player.direction]*0.24*this.width);
+                    this.player.face.translate(this.x_map[this.player.direction]*0.24*this.height,
+                        this.y_map[this.player.direction]*0.24*this.width);
+                }
+                
                 this.player.x_pos += this.x_map[this.player.direction]*0.24*this.width;
                 this.player.y_pos += this.y_map[this.player.direction]*0.24*this.width;
                 this.updateGPSMapPlayer();
@@ -649,9 +688,10 @@ dojo.declare('seeker', [ ], {
                     }
                 } else {
                     this.player.direction = (this.player.direction + 2)%4;
-                    this.audio.say({text: "Congratulations! You just crossed " + this.facingRoad()});
+                    this.audio.say({text: "Good job! You just crossed " + this.facingRoad()});
                     this.player.direction = (this.player.direction + 2)%4;
-                    this.audio.say({text: "You are now standing next to " + this.findNearestBuilding()});
+                    this.audio.say({text: "You are now standing next to " + this.findNearestBuilding() + 
+                        " and you are facing " + this.dir_map[this.player.direction]});
                 }
             }
         }

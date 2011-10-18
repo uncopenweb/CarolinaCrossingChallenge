@@ -194,7 +194,7 @@ dojo.declare('miniGame', [ ], {
 
             // walked at the wrong time, so you try again
             if (this.isSafe == false) {
-                this.audio.play({url: 'sounds/miss/miss1'});
+                //this.audio.play({url: 'sounds/miss/miss1'});
                 
                 this.misses++;
                 var a;
